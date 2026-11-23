@@ -20,7 +20,7 @@ RiderArt.ready.then(()=>{
  for(const f of foods)RiderArt.drawFood(card('foods',f),f);
  // Exercise idle, moving, boosting and externally supplied stride for both genders.
  const probe=document.createElement('canvas');let checked=0;
- for(const vehicle of vehicles)for(const gender of ['male','female'])for(const active of [false,true])for(const boost of [false,true])for(const time of [0,160,480,960]){RiderArt.drawRider(probe,{vehicle,gender,moving:active,boost,time,stride:time*.1});checked++;}
+ for(const vehicle of vehicles)for(const gender of ['male','female'])for(const active of [false,true])for(const boost of [false,true])for(const time of [0,620,670,960]){RiderArt.drawRider(probe,{vehicle,gender,moving:active,boost,time,stride:time*.1});checked++;}
  document.getElementById('result').textContent=checked+'개 자세 렌더링 완료';
  function frame(t){clock+=Math.min(50,t-last);last=t;for(const r of riders)RiderArt.drawRider(r.canvas,{...r,moving,boost,time:clock});requestAnimationFrame(frame)}requestAnimationFrame(frame);
 }).catch(e=>{document.getElementById('result').textContent=e.message;console.error(e)});

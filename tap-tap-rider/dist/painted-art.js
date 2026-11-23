@@ -4,12 +4,14 @@
   const base = new URL("assets/", document.currentScript.src);
   const sheets = {};
   const bounds = {
+    // Matching open/closed frames use identical crop dimensions to avoid blink jitter.
+    heads: [[65,44,514,515],[657,46,538,542],[65,649,514,515],[657,651,538,542]],
     rider: [[52,15,284,328],[388,17,324,332],[793,11,242,337],[1152,27,235,315],[119,374,129,336],[478,373,128,335],[858,383,103,324],[1204,386,140,313],[105,738,164,334],[469,737,133,331],[739,820,326,177],[1102,748,324,308]],
     vehicles: [[14,199,353,186],[385,121,376,290],[795,105,308,302],[1152,145,382,257],[19,624,349,276],[391,648,366,251],[773,637,370,255],[1164,665,360,199]],
     foods: [[4,45,276,224],[290,48,270,221],[570,26,264,243],[848,13,264,254],[1126,36,272,226],[5,340,275,190],[298,319,246,211],[561,322,275,223],[843,290,268,259],[1122,316,277,223],[5,605,275,212],[287,584,270,242],[567,564,267,261],[844,584,265,240],[1122,565,276,257],[5,881,275,206],[286,882,274,198],[568,880,268,211],[845,868,266,228],[1142,848,232,257]]
   };
   const foodIds = ["burger","pizza","chicken","noodles","sushi","tteokbokki","sandwich","jjajang","ramen","tonkatsu","gimbap","bibimbap","kimchistew","jokbal","malatang","pasta","curry","taco","bakery","bingsu"];
-  const ready = Promise.all(Object.entries({rider:"rider-parts-v5.png",vehicles:"vehicles-v5.png",foods:"foods-v5.png"}).map(([key,file]) => new Promise(resolve => {
+  const ready = Promise.all(Object.entries({rider:"rider-parts-v5.png",heads:"rider-heads-v6.png",vehicles:"vehicles-v5.png",foods:"foods-v5.png"}).map(([key,file]) => new Promise(resolve => {
     const img = new Image();
     img.onload = () => { sheets[key] = img; resolve(true); };
     // Keep the original artwork available if an atlas cannot load.
@@ -31,8 +33,9 @@
     c.restore();
   }
 
-  function face(c, female) {
-    return sprite(c, "rider", female ? 1 : 0, female ? -29 : -23, -31, female ? 53 : 47, 54);
+  function face(c, female, blink = 0) {
+    const frame = (female ? 1 : 0) + (blink > 0.86 ? 2 : 0);
+    return sprite(c, "heads", frame, female ? -27 : -25, -32, female ? 53 : 51, female ? 53.4 : 51.1);
   }
   function bag(c) { return sprite(c, "rider", 11, -48, -47, 41, 46); }
   function jacket(c, female) {
@@ -83,7 +86,7 @@
     c.drawImage(sheets.vehicles,sx-r,sy-r,2*r,2*r,-r,-r,2*r,2*r); c.restore();
   }
   function vehicle(c, id, turn=0, female=false, occupied=false, time=0, boost=false) {
-    if (!sheets.vehicles || (occupied && !sheets.rider)) return false;
+    if (!sheets.vehicles || (occupied && (!sheets.rider || !sheets.heads))) return false;
     const ride=rides[id]; if (!ride) return false;
     if (id === "rocket") {
       const pulse=0.8+Math.sin(time/65)*0.12, length=(boost ? 35 : 22)*pulse;
@@ -100,7 +103,9 @@
       else { c.ellipse(116,82,26,14,0,Math.PI,Math.PI*2); c.lineTo(142,93); c.lineTo(90,93); }
       c.closePath(); c.clip();
       c.translate(id === "car" ? 99 : 117,id === "car" ? 81 : 83); c.scale(.43,.43);
-      sprite(c,"rider",female?3:2,-22,8,38,36); face(c,female); c.restore();
+      sprite(c,"rider",female?3:2,-22,8,38,36);
+      const blink = Math.max(0, 1 - Math.abs(((time + 1400) % 4200) - 2070) / 370);
+      face(c,female,blink); c.restore();
     }
     if (boost && id !== "walk" && id !== "rocket") {
       c.save(); c.strokeStyle="#fff0c4a8"; c.lineWidth=.8;

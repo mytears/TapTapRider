@@ -156,7 +156,7 @@
    * ============================================================================ */
 
   function face(c, female, blink) {
-    if (painted?.face(c, female)) return;
+    if (painted?.face(c, female, blink)) return;
     const closed = blink > 0.86;
     layer(c, "portrait-v4-" + female + "-" + closed, -48, -42, 90, 76, b => paintFace(b, female, closed));
   }
