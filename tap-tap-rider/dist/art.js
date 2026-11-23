@@ -1,6 +1,7 @@
 /* Golden-hour painterly artwork for Tap Tap Rider — harmonized with the painted street, shop, parking, and hall scenes. */
 (() => {
   "use strict";
+  const painted = window.PaintedSprites;
 
   // Warm sunset palette tuned directly to street.webp / shop.webp / parking.webp
   const ink = "#3c2629", softInk = "#633e38", warmShadow = "#4a2a36";
@@ -155,6 +156,7 @@
    * ============================================================================ */
 
   function face(c, female, blink) {
+    if (painted?.face(c, female)) return;
     const closed = blink > 0.86;
     layer(c, "portrait-v4-" + female + "-" + closed, -48, -42, 90, 76, b => paintFace(b, female, closed));
   }
@@ -264,6 +266,7 @@
   }
 
   function bag(c) {
+    if (painted?.bag(c)) return;
     // Insulated quilted courier backpack with sunset highlights, brass buckles & side bottle
     paintTextured(c, "M-41 -36 Q-42 -42 -34 -44 L-14 -46 Q-8 -45 -7 -38 L-5 -5 Q-5 1 -11 2 L-37 4 Q-44 4 -45 -3 L-47 -28 Q-48 -35 -41 -36 Z",
       grad(c, -46, -44, -6, 4, [[0, "#97d9b8"], [0.42, "#4e9d88"], [0.82, "#296d62"], [1, "#1c4e47"]]),
@@ -298,6 +301,7 @@
   }
 
   function jacket(c, female) {
+    if (painted?.jacket(c, female)) return;
     // Cozy golden-hour courier windbreaker: female = warm coral-peach & cream, male = warm cream & forest-jade yoke
     const bodyGrad = female
       ? grad(c, -18, -40, 18, 4, [[0, "#ffe4be"], [0.35, "#f4a782"], [0.78, "#cf6c57"], [1, "#9b4744"]])
@@ -342,6 +346,7 @@
   }
 
   function sneaker(c, x, y, scale, angle, far) {
+    if (painted?.sneaker(c, x, y, scale, angle, far)) return;
     transform(c, x, y, scale, angle, () => {
       paint(c, "M-5 -6 Q-2 -3 1 -5 Q3 -6 5 -3 L8 -1 Q15 0 16 3.5 Q16 6.5 11 7.2 L-4 7.2 Q-8.5 7 -8.5 3 L-7.5 -3 Q-7 -6 -5 -6 Z",
         far ? "#b4aa9d" : grad(c, -7, -6, 15, 7, [[0, "#fff5db"], [1, "#e0c29e"]]), ink, 1.5);
@@ -354,6 +359,7 @@
   }
 
   function limbs(c, h, k, a, far) {
+    if (painted?.limbs(c, h, k, a, far)) return;
     const path = new Path2D();
     path.moveTo(h[0] - 5.4, h[1] - 2);
     path.quadraticCurveTo(h[0] - 5.2, h[1] + 5.2, k[0] - 5.2, k[1] - 1);
@@ -378,6 +384,7 @@
   }
 
   function arm(c, elbow, hand, female, far) {
+    if (painted?.arm(c, elbow, hand, female, far)) return;
     const sx = far ? -1 : 6, sy = far ? -28 : -30;
     const sleeve = far ? (female ? "#b76d5d" : "#b89677") : (female ? "#eb9573" : "#ecc999");
     const hi = far ? "#d89c84" : (female ? "#ffd8ae" : "#fff1ca");
@@ -519,6 +526,7 @@
   }
 
   function bike(c, electric, turn, boost = false) {
+    if (painted?.vehicle(c, electric ? "ebike" : "bike", turn, false, false, 0, boost)) return;
     const body = electric ? jade : terracotta;
     const hi = electric ? paleMint : rimGold;
     const fender = electric ? jadeDark : "#9e4835";
@@ -593,6 +601,7 @@
   }
 
   function kickboard(c, turn, boost = false) {
+    if (painted?.vehicle(c, "kickboard", turn, false, false, 0, boost)) return;
     wheels(c, 44, 131, 11.5, turn, true, boost);
     wheels(c, 130, 131, 11.5, turn, true, boost);
 
@@ -617,6 +626,7 @@
   }
 
   function motorcycle(c, sport, turn, boost = false) {
+    if (painted?.vehicle(c, sport ? "sport" : "moto", turn, false, false, 0, boost)) return;
     wheels(c, 37, 120, 23, turn, true, boost);
     wheels(c, 141, 120, 23, turn, true, boost);
 
@@ -699,10 +709,11 @@
         else if (motor) motorcycle(c, v === "sport", turn, boost);
         else bike(c, v === "ebike", turn, boost);
 
-        const hx = kick ? 79 : 76, hy = (kick ? 93 : 85) + bump;
+        const pose = painted?.rides[v];
+        const hx = pose?.seat[0] ?? (kick ? 79 : 76), hy = (pose?.seat[1] ?? (kick ? 93 : 85)) + bump;
         const sc = kick ? 0.94 : 0.86, lean = kick ? 0.03 : v === "sport" ? 0.25 : motor ? 0.12 : 0.16;
         const hFar = [hx - 4, hy], hNear = [hx + 2, hy + 1];
-        const axle = [78, 118], pedal = [Math.cos(turn) * 10, Math.sin(turn) * 9];
+        const axle = pose?.axle || [78, 118], pedal = [Math.cos(turn) * 10, Math.sin(turn) * 9];
         const farFoot = kick ? [56, 118] : motor ? [82, 106] : [axle[0] - pedal[0] - 3, axle[1] - pedal[1] - 3];
         const nearFoot = kick ? [83, 118] : motor ? [94, 109] : [axle[0] + pedal[0] - 3, axle[1] + pedal[1] - 3];
 
@@ -711,7 +722,7 @@
         limbs(c, hNear, kneeFor(hNear, nearFoot, kick ? 20 : 23), nearFoot, false);
         sneaker(c, ...nearFoot, 0.83, -0.04, false);
 
-        const grip = kick ? [117, 55] : motor ? [113, 66] : [128, 62];
+        const grip = pose?.grip || (kick ? [117, 55] : motor ? [113, 66] : [128, 62]);
         const dx = (grip[0] - hx) / sc, dy = (grip[1] - hy) / sc;
         const hand = [dx * Math.cos(lean) + dy * Math.sin(lean), -dx * Math.sin(lean) + dy * Math.cos(lean)];
         transform(c, hx, hy, sc, lean, () => torso(c, female, [hand[0] * 0.49 + 3, hand[1] * 0.44 - 9], hand, -lean * 0.65, t));
@@ -720,6 +731,7 @@
   }
 
   function car(c, female, turn, occupied, t, boost = false) {
+    if (painted?.vehicle(c, "car", turn, female, occupied, t, boost)) return;
     const bounce = occupied ? Math.sin(t / 145) * (boost ? 1.0 : 0.45) : 0;
     wheels(c, 43, 121, 19, turn, true, boost);
     wheels(c, 136, 121, 19, turn, true, boost);
@@ -781,6 +793,7 @@
   }
 
   function rocket(c, female, t, occupied, boost) {
+    if (painted?.vehicle(c, "rocket", 0, female, occupied, t, boost)) return;
     const pulse = Math.sin(t / 85) * 0.5 + 0.5, flame = boost ? 1.32 : 0.82;
     // Multi-layered warm plasma thruster plume + glowing embers
     transform(c, 43, 99, 1, 0, () => {
@@ -1371,7 +1384,7 @@
     if (!foodCache.has(key)) {
       const off = document.createElement("canvas");
       const c = surface(off, 96, 88, 3);
-      fn(c);
+      if (!painted?.food(c, key)) fn(c);
       foodCache.set(key, off);
     }
     return foodCache.get(key);
@@ -1405,7 +1418,7 @@
       else if (v === "bike" || v === "ebike") bike(c, v === "ebike", -0.28, false);
       else if (v === "moto" || v === "sport") motorcycle(c, v === "sport", 0, false);
       else if (v === "kickboard") kickboard(c, 0, false);
-      else garageShoe(c);
+      else if (!painted?.vehicle(c, "walk")) garageShoe(c);
     });
   }
 
@@ -1418,5 +1431,8 @@
     else walker(c, female, moving, boost, t, opts.stride);
   }
 
-  window.RiderArt = { drawRider, drawFood, drawTransport, drawFoodEmblem };
+  const ready = (painted?.ready || Promise.resolve()).then(() => {
+    layers.clear(); foodCache.clear();
+  });
+  window.RiderArt = { drawRider, drawFood, drawTransport, drawFoodEmblem, ready };
 })();

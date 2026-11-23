@@ -260,14 +260,14 @@ dialog::backdrop { background: #283f3a72; backdrop-filter: blur(3px); }
 .pickers { grid-template-columns: repeat(2,1fr); margin-top: 14px; }
 .rider-choice, .vehicle { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px; border: 2px solid #e1e8dc; border-radius: 17px; background: #f7f8f0; }
 .rider-choice.chosen, .vehicle.chosen { border-color: #5d9e80; background: #e8f4e8; }
-.rider-choice canvas { width: 118px; }
+.rider-choice canvas { width: 144px; max-width: 100%; }
 .rider-choice b, .vehicle b { font: 400 19px var(--display); }
 .modal-tabs, .toggle-row { display: flex; gap: 7px; align-items: center; }
 .modal-tabs { margin: 12px 0; }
 .modal-tabs button, .toggle { font-size: 14px; font-weight: 800; padding: 7px 15px; border-radius: 16px; color: #526958; background: #eff2e9; }
 .modal-tabs button.chosen, .toggle.chosen { color: #14684e; background: #dceee1; }
 .garage-grid { grid-template-columns: repeat(4,1fr); }
-.vehicle canvas { width: 100%; max-width: 92px; }
+.vehicle canvas { width: 100%; max-width: 124px; }
 .vehicle b { font-size: 17px; }
 .vehicle small { font-size: 13px; font-weight: 700; color: var(--gold); }
 .vehicle .owned { color: #4f745b; }

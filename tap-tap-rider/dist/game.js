@@ -296,6 +296,14 @@
   });
   dialog.addEventListener("close", () => { if (!dialog.open) { modal = ""; markNav(); } });
   dialog.addEventListener("cancel", () => { modal = ""; markNav(); });
+  A.ready.then(() => {
+    strip.refreshArtwork();
+    const emblem = $("shop-wall-sign");
+    if (emblem) delete emblem.dataset.food;
+    swapScene(false);
+    dialog.querySelectorAll("[data-character]").forEach(c => A.drawRider(c, {gender:c.dataset.character, vehicle:"walk"}));
+    dialog.querySelectorAll("[data-vehicle]").forEach(c => A.drawTransport(c, c.dataset.vehicle));
+  });
   document.addEventListener("visibilitychange", () => { if (document.hidden) persist(); lastFrame = performance.now(); }); window.addEventListener("pagehide", persist);
   new ResizeObserver(() => { snapshot(); paint(anim); }).observe(world);
   V.hydrate(); dialog.setAttribute("aria-labelledby", "modal-title"); snapshot(); swapScene(false); requestAnimationFrame(frame);

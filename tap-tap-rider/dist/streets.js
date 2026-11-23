@@ -168,7 +168,14 @@
       });
     }
 
-    return { show, position };
+    function refreshArtwork() {
+      tiles.forEach(tile => {
+        tile.slots.forEach(slot => { slot.foodId = ""; });
+        if (tile.tileIndex !== null) updateTileContent(tile, tile.tileIndex);
+      });
+    }
+
+    return { show, position, refreshArtwork };
   }
 
   window.RiderStreet = { project, createStrip };

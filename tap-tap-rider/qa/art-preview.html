@@ -1,0 +1,27 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>라이더 그림 검수</title>
+<style>
+@font-face{font-family:Suit;src:url(../dist/assets/suit.woff2)}*{box-sizing:border-box}body{margin:0;background:#eee8dc;font-family:Suit,sans-serif;color:#2b443b}header{padding:16px 24px;position:sticky;top:0;z-index:2;background:#fffdf7;display:flex;align-items:center;gap:16px}h1{font-size:20px;margin:0}button{padding:8px 16px;border:1px solid #4a7e67;border-radius:10px;background:#fff;color:#284c3d}main{padding:20px}h2{font-size:18px}.grid{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:12px}.card{background:#fffdf7;border-radius:14px;overflow:hidden;text-align:center;padding-bottom:12px}.stage{height:205px;background:url(../dist/assets/street.webp) center bottom / auto 270px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px}.stage canvas{width:240px;max-width:100%;filter:drop-shadow(0 2px 1px #392a3044)}.still canvas{width:180px;max-width:100%}.foods{grid-template-columns:repeat(5,minmax(100px,1fr))}.foods canvas{width:140px;max-width:100%}b{display:block;font-size:14px}#result{font-size:13px}@media(max-width:700px){.grid{grid-template-columns:repeat(2,minmax(130px,1fr))}.foods{grid-template-columns:repeat(3,1fr)}}
+</style>
+<header><h1>그림 · 동작 검수</h1><button id="motion">동작 멈춤</button><button id="boost">부스트 켜기</button><span id="result">그림 로딩 중</span></header>
+<main><h2>남성 / 여성 · 이동 수단별 탑승</h2><section id="riders" class="grid"></section><h2>차고</h2><section id="garage" class="grid"></section><h2>음식 20종</h2><section id="foods" class="grid foods"></section></main>
+<script src="../dist/painted-art.js"></script><script src="../dist/art.js"></script>
+<script>
+const vehicles=['walk','bike','kickboard','ebike','moto','sport','car','rocket'];
+const names=['도보','자전거','킥보드','전기자전거','오토바이','스포츠 바이크','자동차','로켓'];
+const foods=['burger','pizza','chicken','noodles','sushi','tteokbokki','sandwich','jjajang','ramen','tonkatsu','gimbap','bibimbap','kimchistew','jokbal','malatang','pasta','curry','taco','bakery','bingsu'];
+let moving=true,boost=false,clock=0,last=0; const riders=[];
+function card(parent,title,stage){const el=document.createElement('article');el.className='card';const box=document.createElement('div');box.className=stage?'stage':'still';const canvas=document.createElement('canvas');box.append(canvas);const label=document.createElement('b');label.textContent=title;el.append(box,label);document.getElementById(parent).append(el);return canvas;}
+for(const v of vehicles)for(const gender of ['male','female'])riders.push({canvas:card('riders',names[vehicles.indexOf(v)]+' · '+(gender==='male'?'남성':'여성'),true),vehicle:v,gender});
+document.getElementById('motion').onclick=e=>{moving=!moving;e.target.textContent=moving?'동작 멈춤':'동작 재생'};
+document.getElementById('boost').onclick=e=>{boost=!boost;e.target.textContent=boost?'부스트 끄기':'부스트 켜기'};
+RiderArt.ready.then(()=>{
+ for(const v of vehicles)RiderArt.drawTransport(card('garage',names[vehicles.indexOf(v)]),v);
+ for(const f of foods)RiderArt.drawFood(card('foods',f),f);
+ // Exercise idle, moving, boosting and externally supplied stride for both genders.
+ const probe=document.createElement('canvas');let checked=0;
+ for(const vehicle of vehicles)for(const gender of ['male','female'])for(const active of [false,true])for(const boost of [false,true])for(const time of [0,160,480,960]){RiderArt.drawRider(probe,{vehicle,gender,moving:active,boost,time,stride:time*.1});checked++;}
+ document.getElementById('result').textContent=checked+'개 자세 렌더링 완료';
+ function frame(t){clock+=Math.min(50,t-last);last=t;for(const r of riders)RiderArt.drawRider(r.canvas,{...r,moving,boost,time:clock});requestAnimationFrame(frame)}requestAnimationFrame(frame);
+}).catch(e=>{document.getElementById('result').textContent=e.message;console.error(e)});
+</script></html>
