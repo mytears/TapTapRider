@@ -52,8 +52,14 @@ assert.equal(H.claim(state, 'deliver-100'), 0);
 assert.equal(H.claim(state, '__proto__'), 0);
 assert.equal(state.money, beforeReward + 500);
 
-G.act(state, 'next');
-G.advance(state, 10);
+function nextOffer(s) {
+  G.act(s, 'next');
+  G.advance(s, 6);
+}
+for (let i = 1; i <= 5; i++) {
+  nextOffer(state);
+  assert.equal(state.order.premium, i === 5);
+}
 assert.equal(state.order.premium, true);
 assert.equal(state.order.fare, state.order.regularFare * 2.5);
 assert.equal(G.start(state), false);
@@ -74,11 +80,51 @@ assert.equal(state.order.premium, false);
 assert.equal(G.unlockPremium(state, staleOrder), false);
 assert.equal(G.start(state), true);
 
+// Both interval boundaries must hold over repeated cycles, including reloads.
+for (const [randomValue, interval] of [[0, 5], [0.999999, 10]]) {
+  math.random = () => randomValue;
+  let cadence = G.fresh();
+  cadence.count = 1;
+  for (let cycle = 0; cycle < 20; cycle++) {
+    for (let call = 1; call <= interval; call++) {
+      nextOffer(cadence);
+      assert.equal(cadence.order.premium, call === interval);
+      const remaining = cadence.premiumCallsRemaining;
+      G.save(cadence);
+      // Reload with a different RNG: the scheduled interval must not change.
+      math.random = () => 1 - randomValue - 0.000001;
+      cadence = G.load();
+      assert.equal(cadence.premiumCallsRemaining, remaining);
+      math.random = () => randomValue;
+    }
+  }
+}
+
+// Every possible interval is selectable, and skipped/regular-fare calls count.
+const cadence = G.fresh();
+cadence.count = 1;
+let previousPremium = 0;
+let premiumCount = 0;
+math.random = () => ((premiumCount % 6) + 0.1) / 6;
+for (let call = 1; call <= 450; call++) {
+  nextOffer(cadence);
+  if (cadence.order.premium) {
+    const interval = call - previousPremium;
+    assert.equal(interval, premiumCount === 0 ? 5 : 5 + ((premiumCount - 1) % 6));
+    previousPremium = call;
+    premiumCount++;
+    assert.equal(G.useRegularFare(cadence, cadence.order.id), true);
+  }
+  assert(call - previousPremium < 10);
+}
+assert(premiumCount > 50);
+
 const legacy = G.fresh();
 Object.assign(legacy, {count: 25, total: 120000, money: 17, owned: ['walk', 'bike'], speedGear: 2, quick: 2});
 legacy.history = [{score: 5, fast: true, food: 'burger'}];
 delete legacy.stats;
 delete legacy.achievements;
+delete legacy.premiumCallsRemaining;
 stored = JSON.stringify(legacy);
 const migrated = G.load();
 assert.equal(migrated.count, 25);
@@ -88,6 +134,9 @@ assert(migrated.achievements['income-100k']);
 assert(migrated.achievements['own-bike']);
 assert.equal(migrated.stats.fast, 2);
 assert.equal(migrated.stats.rain, 0);
+nextOffer(migrated);
+assert.equal(migrated.order.premium, false);
+assert(migrated.premiumCallsRemaining >= 4 && migrated.premiumCallsRemaining <= 9);
 
 const completed = G.fresh();
 Object.assign(completed, {count: 100, total: 1000000, speedGear: 5, owned: G.vehicles.map(v => v.id)});
@@ -155,6 +204,6 @@ async function testAds() {
   promise = native.ads.request(() => {});
   native.timeout();
   assert.equal((await promise).earned, false);
-  console.log('Passed premium-call gating, 30 achievements, save migration, duplicate prevention, and web/native ad lifecycle tests.');
+  console.log('Passed 5–10 call intervals (all six choices), reload persistence, optional ads, 30 achievements, save migration, duplicate prevention, and web/native ad lifecycle tests.');
 }
 testAds().catch(error => {console.error(error); process.exitCode = 1;});

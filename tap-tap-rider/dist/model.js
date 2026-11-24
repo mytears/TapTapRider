@@ -137,6 +137,17 @@
     return others[roll(others.length)][0];
   }
 
+  function premiumOffer(s, first) {
+    if (first || s.count <= 0) return false;
+    if (!Number.isInteger(s.premiumCallsRemaining) || s.premiumCallsRemaining < 1 || s.premiumCallsRemaining > 10) {
+      s.premiumCallsRemaining = 5 + roll(6);
+    }
+    if (--s.premiumCallsRemaining > 0) return false;
+    // Count generated calls, including skipped calls, and save the next interval.
+    s.premiumCallsRemaining = 5 + roll(6);
+    return true;
+  }
+
   function offer(s, first = false) {
     const [food, name] = foods[first ? 0 : roll(foods.length)];
     const dist = first ? 0.8 : (5 + roll(22)) / 10;
@@ -144,7 +155,7 @@
     const peak = calendar(s).peak, rain = s.rain, rate = rating(s);
     const base = Math.round((1760 + dist * 1380) / 100) * 100;
     const regularFare = Math.round(base * (peak ? 1.1 : 1) * (rain ? 1.25 : 1) * (0.85 + rate * 0.03) / 100) * 100;
-    const premium = !first && s.count > 0 && Math.random() < 0.15;
+    const premium = premiumOffer(s, first);
     const fare = premium ? regularFare * 2.5 : regularFare;
     const floor = first ? 4 : 2 + roll(7), room = first ? 2 : 1 + roll(3);
     const place = placeFor(s.regionName, s.themeId);
@@ -166,7 +177,8 @@
       rain: false, weatherBlock: Math.floor(initialMinute / 75), serial: 0,
       phase: "offer", order: null, phaseTime: 0, progress: 0,
       boostTime: 0, quick: 0, claimed: false,
-      history: [], lastResult: null, wait: 0, stats: null, achievements: null
+      history: [], lastResult: null, wait: 0, stats: null, achievements: null,
+      premiumCallsRemaining: null
     };
     s.order = offer(s, true);
     achievements.initialize(s);
