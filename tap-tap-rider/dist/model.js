@@ -1,5 +1,6 @@
 (() => {
   "use strict";
+  const achievements = window.RiderAchievements;
   const vehicles = [
     { id: "walk", name: "도보", cost: 0, speed: 5 },
     { id: "bike", name: "자전거", cost: 7500, speed: 10 },
@@ -142,13 +143,15 @@
     const pick = first ? 0.20 : Math.min(0.55, dist * (0.2 + Math.random() * 0.18));
     const peak = calendar(s).peak, rain = s.rain, rate = rating(s);
     const base = Math.round((1760 + dist * 1380) / 100) * 100;
-    const fare = Math.round(base * (peak ? 1.1 : 1) * (rain ? 1.25 : 1) * (0.85 + rate * 0.03) / 100) * 100;
+    const regularFare = Math.round(base * (peak ? 1.1 : 1) * (rain ? 1.25 : 1) * (0.85 + rate * 0.03) / 100) * 100;
+    const premium = !first && s.count > 0 && Math.random() < 0.15;
+    const fare = premium ? regularFare * 2.5 : regularFare;
     const floor = first ? 4 : 2 + roll(7), room = first ? 2 : 1 + roll(3);
     const place = placeFor(s.regionName, s.themeId);
     return locateOrder({
       id: ++s.serial, food, name, wrongFood: pickDifferentFood(food),
       homeIndex: first ? 0 : roll(place.homes.length),
-      flat: floor * 100 + room, floor, dist, pick, fare, base, peak, rain, rate,
+      flat: floor * 100 + room, floor, dist, pick, fare, regularFare, premium, adUnlocked: false, base, peak, rain, rate,
       wrong: false, mixed: false, start: 0, age: 0, fastLimit: Math.ceil(22 + dist * 47),
       score: 0, paid: 0, fast: false, fixed: false
     }, place);
@@ -163,9 +166,10 @@
       rain: false, weatherBlock: Math.floor(initialMinute / 75), serial: 0,
       phase: "offer", order: null, phaseTime: 0, progress: 0,
       boostTime: 0, quick: 0, claimed: false,
-      history: [], lastResult: null, wait: 0
+      history: [], lastResult: null, wait: 0, stats: null, achievements: null
     };
     s.order = offer(s, true);
+    achievements.initialize(s);
     return s;
   }
 
@@ -192,6 +196,7 @@
           state.order.wrongFood = pickDifferentFood(state.order.food);
         }
         locateOrder(state.order, place);
+        achievements.initialize(state);
         return state;
       }
     } catch {}
@@ -203,11 +208,17 @@
   function traveling(s) { return s.phase === "toShop" || s.phase === "toHome"; }
 
   function start(s) {
-    if (s.phase !== "offer" || !s.gender) return;
+    if (s.phase !== "offer" || !s.gender || (s.order.premium && !s.order.adUnlocked)) return false;
     s.order.start = s.minutes; s.order.age = 0;
     s.order.mixed = s.count > 0 && Math.random() < 0.16;
     if (s.order.mixed) s.order.wrongFood = pickDifferentFood(s.order.food);
     s.progress = 0; s.boostTime = 0; phase(s, "toShop");
+    return true;
+  }
+  function unlockPremium(s, orderId) {
+    if (s.phase !== "offer" || s.order.id !== orderId || !s.order.premium || s.order.adUnlocked) return false;
+    s.order.adUnlocked = true;
+    return true;
   }
   function next(s) { s.wait = calendar(s).peak ? 1.5 : 5; phase(s, "dispatch"); }
   function tap(s) {
@@ -245,9 +256,12 @@
     if (o.fast) s.quick = Math.min(3, s.quick + 1);
     s.lastResult = {
       regionName: o.regionName, themeId: o.themeId, shop: o.shop, food: o.food, name: o.name,
-      pay: o.paid, score: o.score, time: Math.ceil(o.age), fast: o.fast, home: o.home, day: calendar(s).day
+      pay: o.paid, score: o.score, time: Math.ceil(o.age), fast: o.fast, home: o.home, day: calendar(s).day,
+      rain: o.rain, peak: o.peak, premium: !!o.premium, vehicle: s.vehicle
     };
     s.history.unshift(s.lastResult); s.history = s.history.slice(0, 40);
+    achievements.recordDelivery(s, o);
+    achievements.update(s);
     phase(s, "result");
   }
 
@@ -270,19 +284,19 @@
     const v = vehicles.find(v => v.id === id); if (!v) return "";
     if (!["offer", "result", "dispatch"].includes(s.phase)) return "배달을 마친 뒤 탈것을 바꿀 수 있어요.";
     if (!s.owned.includes(id)) { if (s.money < v.cost) return "잔액이 부족해요. 배달로 운임을 모아 보세요."; s.money -= v.cost; s.owned.push(id); }
-    s.vehicle = id; return v.name + " 장착 완료!";
+    s.vehicle = id; achievements.update(s); return v.name + " 장착 완료!";
   }
   const gearCost = level => 2500 * (level + 1);
   function buyGear(s, key) {
     if (key !== "speedGear") return "";
     const level = s[key]; if (level >= 5) return "최고 단계에 도달했어요.";
     const cost = gearCost(level); if (s.money < cost) return "잔액이 부족해요. 배달로 운임을 모아 보세요.";
-    s.money -= cost; s[key]++; return "장비를 강화했어요!";
+    s.money -= cost; s[key]++; achievements.update(s); return "장비를 강화했어요!";
   }
   function claimMission(s) { if (s.quick < 3 || s.claimed) return false; s.money += 2200; s.claimed = true; return true; }
 
   window.RiderGame = {
-    fresh, load, save, vehicles, vehicle, calendar, rating, start, tap, speed, advance, act, traveling,
+    fresh, load, save, vehicles, vehicle, calendar, rating, start, unlockPremium, tap, speed, advance, act, traveling,
     buyVehicle, buyGear, gearCost, claimMission, foods, foodById, shopName,
     themes, theme, presetRegions, cleanRegion, placeFor, setRegion, setTheme
   };

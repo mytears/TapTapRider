@@ -26,6 +26,7 @@ public final class MainActivity extends Activity {
     private static final String GAME_URL = "https://" + ASSET_HOST + ASSET_PATH + "index.html";
 
     private WebView gameView;
+    private RewardedAdsController rewardedAds;
     private boolean handlingBack;
 
     @Override
@@ -47,6 +48,8 @@ public final class MainActivity extends Activity {
         gameView.setBackgroundColor(getColor(R.color.paper));
         gameView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
         configureGameView();
+        rewardedAds = new RewardedAdsController(this);
+        rewardedAds.attach(gameView);
         frame.addView(gameView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(frame);
@@ -128,6 +131,7 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        rewardedAds.destroy();
         ((ViewGroup) gameView.getParent()).removeView(gameView);
         gameView.destroy();
         super.onDestroy();

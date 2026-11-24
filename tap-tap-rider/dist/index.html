@@ -8,14 +8,16 @@
   <link rel="icon" href="assets/helmet.png?v=2">
   <link rel="preload" href="assets/jua.ttf?v=3" as="font" type="font/ttf" crossorigin>
   <link rel="preload" href="assets/suit.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="game.css?v=7">
+  <link rel="stylesheet" href="game.css?v=10">
   <script defer src="painted-art.js?v=9"></script>
   <script defer src="art.js?v=9"></script>
   <script defer src="visuals.js?v=4"></script>
   <script defer src="sound.js"></script>
-  <script defer src="model.js?v=7"></script>
+  <script defer src="achievements.js?v=10"></script>
+  <script defer src="ads.js?v=10"></script>
+  <script defer src="model.js?v=10"></script>
   <script defer src="streets.js?v=5"></script>
-  <script defer src="game.js?v=7"></script>
+  <script defer src="game.js?v=10"></script>
 </head>
 <body>
 <main id="game">
@@ -42,7 +44,7 @@
     <button class="boost-panel" id="boost" data-action="boost" aria-disabled="true"><span class="bolt"><i data-icon="bolt"></i></span><strong>탭 부스트</strong><small id="boost-hint"><kbd>SPACE</kbd> 또는 탭</small></button>
   </section>
   <nav class="dock" aria-label="게임 메뉴">
-    <div class="nav-items"><button class="active" data-action="home"><i data-icon="radio"></i>배달</button><button data-action="garage"><i data-icon="garage"></i>차고</button><button data-action="missions"><i data-icon="flag"></i>미션<span id="claim-dot" hidden></span></button><button data-action="history"><i data-icon="history"></i>배달 기록</button></div>
+    <div class="nav-items"><button class="active" data-action="home"><i data-icon="radio"></i>배달</button><button data-action="garage"><i data-icon="garage"></i>차고</button><button data-action="missions"><i data-icon="flag"></i>미션<span id="claim-dot" hidden></span></button><button data-action="achievements"><i data-icon="star"></i>업적<span id="achievement-dot" hidden></span></button><button data-action="history"><i data-icon="history"></i>배달 기록</button></div>
     <div class="utilities"><button data-action="mute" id="mute" title="전체 소리" aria-label="전체 소리"><i data-icon="volume"></i></button><button data-action="fullscreen" title="전체 화면" aria-label="전체 화면"><i data-icon="fullscreen"></i></button></div>
   </nav>
 </main>

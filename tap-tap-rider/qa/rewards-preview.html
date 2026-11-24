@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<title>특별 콜 · 업적 검수 준비</title>
+<style>body{font:16px sans-serif;max-width:600px;margin:50px auto;padding:20px;background:#fffdf5;color:#264a3a}button{padding:14px;border:0;border-radius:10px;background:#20795d;color:white;font:inherit}p{line-height:1.6}</style>
+<h1>특별 콜 · 업적 검수</h1>
+<p>이 테스트 서버에 샘플 진행 기록을 저장하고 실제 게임 화면을 엽니다. 업적 보상 수령과 특별 콜 시청 취소·완료를 확인할 수 있습니다.</p>
+<button id="prepare">샘플 특별 콜로 게임 열기</button>
+<script src="../dist/achievements.js"></script>
+<script src="../dist/model.js"></script>
+<script>
+document.getElementById('prepare').onclick = () => {
+  const state = RiderGame.fresh();
+  Object.assign(state, {gender:'female',count:12,total:50000,stars:58,money:5000});
+  Object.assign(state.stats, {fast:4,perfect:3,peak:3,foods:['burger','pizza','ramen']});
+  Object.assign(state.order, {premium:true,regularFare:state.order.fare,fare:state.order.fare*2.5,adUnlocked:false});
+  RiderAchievements.update(state);
+  RiderGame.save(state);
+  location.href = '../dist/index.html';
+};
+</script>
+</html>
