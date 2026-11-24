@@ -120,6 +120,8 @@ i[data-icon], .ico { display: inline-flex; align-items: center; justify-content:
 .place-marker i { width: 15px; height: 15px; }
 .player { position: absolute; z-index: 2; bottom: 5.3%; left: 50%; width: clamp(116px,12.5vw,206px); line-height: 0; pointer-events: none; transform: translateX(-50%); will-change: left; }
 .player canvas { width: 100%; height: auto; position: relative; filter: drop-shadow(0 2px 3px rgba(64,34,28,0.22)); }
+.world[data-scene="shop"] .player,
+.world[data-scene="hall"] .player { transform: translateX(-50%) scale(2); transform-origin: center bottom; }
 .player-shadow { position: absolute; left: 25%; right: 17%; height: 6%; bottom: 1%; border-radius: 50%; background: #472c365c; filter: blur(1.8px); }
 .player[data-vehicle="walk"] .player-shadow { left: 36%; right: 28%; bottom: 1.6%; height: 4.5%; background: #482c3468; }
 .player[data-vehicle="rocket"] .player-shadow { bottom: 0; opacity: .55; filter: blur(3px); }
@@ -174,16 +176,10 @@ i[data-icon], .ico { display: inline-flex; align-items: center; justify-content:
 .refresh-btn .ico { font-size: 16px; }
 .condition { display: flex; flex-direction: column; justify-content: space-between; }
 .condition .panel-heading .ico { color: #448b71; }
-.fatigue-label, .speed-label, .fatigue-label > span { display: flex; align-items: center; justify-content: space-between; }
-.fatigue-label { margin-top: 12px; }
-.fatigue-label > span { gap: 6px; }
-.fatigue-label > span, .speed-label > span { font-size: 14px; font-weight: 650; color: var(--muted); }
-.fatigue-label i { width: 16px; height: 16px; }
-.fatigue-label b, .speed-label b { font: 800 20px var(--body); font-variant-numeric: tabular-nums; }
-.fatigue-label b { color: var(--mint); }
-.fatigue-label b span, .speed-label small { font: 700 13px var(--body); }
-.gauge { height: 10px; background: #e3ebdf; border-radius: 12px; margin: 4px 0 9px; overflow: hidden; }
-#heat-fill { height: 100%; width: 0; background: var(--mint); border-radius: inherit; transition: width .1s linear; }
+.speed-label { display: flex; align-items: center; justify-content: space-between; }
+.speed-label > span { font-size: 14px; font-weight: 650; color: var(--muted); }
+.speed-label b { font: 800 20px var(--body); font-variant-numeric: tabular-nums; }
+.speed-label small { font: 700 13px var(--body); }
 .speed-label { padding-top: 7px; border-top: 1px solid #e5e9df; }
 .speed-label small { color: var(--muted); }
 .boost-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; position: relative; background: #f7edce; border-color: #ecdfb5; }
@@ -194,8 +190,6 @@ kbd { font: 800 10px var(--body); background: #fff9e7; border: 1px solid #d2c39e
 .bolt i[data-icon] { width: 68%; height: 68%; }
 .boost-panel.ready { background: #ffe8a5; border-color: #e4bd61; }
 .boost-panel.ready .bolt { color: #a65d06; background: #ffd060; }
-.boost-panel.exhausted { background: #f8e3d6; }
-.boost-panel.exhausted .bolt { background: #f2c5a9; color: #a75c3c; }
 .boost-panel.hit { transform: scale(.985); }
 .route-line { flex: 1; min-width: 48px; height: 7px; background: #e2ebdd; border-radius: 10px; overflow: hidden; }
 .route-line > i { display: block; background: #50a382; height: 100%; }
@@ -303,7 +297,7 @@ dialog::backdrop { background: #283f3a72; backdrop-filter: blur(3px); }
   .scene-mission { left: 10px; bottom: 8px; padding: 4px 7px 4px 4px; gap: 6px; border-radius: 12px; } .scene-mission strong { font-size: 12px; }
   .player { width: 116px; }
   .console { grid-template-columns: 1.6fr 1fr; padding: 8px; gap: 6px; } .order-panel { grid-column: 1/-1; } .panel, .boost-panel { border-radius: 14px; }
-  .condition { padding: 7px 10px; } .fatigue-label { margin-top: 2px; } .gauge { margin: 2px 0 3px; height: 7px; } .speed-label { padding-top: 2px; }
+  .condition { padding: 7px 10px; } .speed-label { padding-top: 2px; }
   .panel-heading { font-size: 14px; } .boost-panel { gap: 2px; } .boost-panel strong { font-size: 19px; } .bolt { width: 31px; height: 31px; } .bolt .ico { font-size: 22px; }
   .dock { padding: 0 4px; } .nav-items, .utilities { gap: 0; } .nav-items button { min-height: 31px; padding: 0 8px; font-size: 13px; gap: 4px; } .nav-items button i { width: 15px; height: 15px; } .utilities button { width: 28px; }
   .garage-grid { grid-template-columns: repeat(2,1fr); } .modal { padding: 16px; }
@@ -320,8 +314,8 @@ dialog::backdrop { background: #283f3a72; backdrop-filter: blur(3px); }
   .item-art { width: 42px; height: 38px; border-radius: 10px; } .item-art canvas { width: 38px; } .offer-text h2 { font-size: 18px; margin-bottom: 1px; } .offer-text p { font-size: 11px; }
   .main-btn, .sub-btn, .refresh-btn { min-height: 25px; font-size: 12px; padding: 2px 8px; border-radius: 9px; } .refresh-btn { min-width: 25px; border-radius: 50%; } .offer-pay { font-size: 16px; } .offer-pay .ico { font-size: 16px; }
   .boost-panel { gap: 2px; } .bolt { width: 27px; height: 27px; } .bolt .ico { font-size: 19px; } .boost-panel strong { font-size: 18px; } .boost-panel small, kbd { font-size: 10px; }
-  .fatigue-label { margin-top: 2px; } .gauge { height: 7px; margin: 2px 0 4px; } .speed-label { padding-top: 3px; } .speed-label b, .fatigue-label b { font-size: 15px; }
-  .fatigue-label > span, .speed-label > span { font-size: 12px; } .nav-items button { min-height: 25px; font-size: 12px; padding: 1px 13px; } .nav-items button i, .utilities i { width: 14px; height: 14px; } .utilities button { height: 25px; }
+  .speed-label { padding-top: 3px; } .speed-label b { font-size: 15px; }
+  .speed-label > span { font-size: 12px; } .nav-items button { min-height: 25px; font-size: 12px; padding: 1px 13px; } .nav-items button i, .utilities i { width: 14px; height: 14px; } .utilities button { height: 25px; }
   .location, .minimap { top: 7px; } .location { left: 10px; padding: 4px 8px 4px 4px; gap: 5px; border-radius: 11px; } .location strong { font-size: 15px; margin-top: 0; } .location small { font-size: 7px; } .location > i { width: 25px; height: 25px; padding: 5px; }
   .minimap { right: 10px; width: 111px; padding: 4px; border-radius: 11px; } .map-heading { font-size: 10px; padding-bottom: 3px; } #map { border-radius: 7px; }
   .scene-mission { bottom: 6px; left: 10px; gap: 5px; padding: 4px 7px 4px 4px; border-radius: 10px; } .mission-symbol { width: 24px; height: 24px; border-radius: 8px; } .mission-symbol i { width: 13px; height: 13px; }

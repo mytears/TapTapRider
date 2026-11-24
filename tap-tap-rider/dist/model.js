@@ -158,11 +158,11 @@
     const s = {
       version: 1, regionName: "성수", themeId: "workshop",
       money: 0, count: 0, stars: 0, total: 0, gender: null,
-      owned: ["walk"], vehicle: "walk", speedGear: 0, coolGear: 0,
+      owned: ["walk"], vehicle: "walk", speedGear: 0,
       music: true, sfx: true, muted: false, minutes: initialMinute,
       rain: false, weatherBlock: Math.floor(initialMinute / 75), serial: 0,
-      phase: "offer", order: null, phaseTime: 0, progress: 0, fatigue: 0,
-      boostTime: 0, sinceTap: 10, lock: 0, lockMax: 5, quick: 0, claimed: false,
+      phase: "offer", order: null, phaseTime: 0, progress: 0,
+      boostTime: 0, quick: 0, claimed: false,
       history: [], lastResult: null, wait: 0
     };
     s.order = offer(s, true);
@@ -174,6 +174,10 @@
       const saved = JSON.parse(localStorage.getItem(STORE));
       if (saved?.version === 1 && saved.order?.food && Array.isArray(saved.owned) && Number.isFinite(saved.money) && Array.isArray(saved.history)) {
         const state = Object.assign(fresh(), saved);
+        // Refund retired recovery equipment once, then remove its saved level.
+        const coolingLevel = Math.max(0, Math.min(5, Math.floor(Number(state.coolGear) || 0)));
+        state.money += 2500 * coolingLevel * (coolingLevel + 1) / 2;
+        for (const key of ["coolGear", "fatigue", "lock", "lockMax", "sinceTap"]) delete state[key];
         // Migrate legacy districtId saves cleanly
         if (!saved.regionName && saved.districtId && legacyMap[saved.districtId]) {
           state.regionName = legacyMap[saved.districtId].region;
@@ -207,9 +211,7 @@
   }
   function next(s) { s.wait = calendar(s).peak ? 1.5 : 5; phase(s, "dispatch"); }
   function tap(s) {
-    if (!traveling(s) || s.lock > 0) return false;
-    s.sinceTap = 0; s.fatigue = Math.min(100, s.fatigue + 10);
-    if (s.fatigue >= 100) { s.lockMax = 5.5 / (1 + s.coolGear * 0.15); s.lock = s.lockMax; s.boostTime = 0; return "locked"; }
+    if (!traveling(s)) return false;
     s.boostTime = Math.min(1.6, s.boostTime + 0.56); return "boost";
   }
   function speed(s) { return traveling(s) ? vehicle(s).speed * (1 + 0.12 * s.speedGear) * (s.boostTime > 0 ? 2.05 : 1) : 0; }
@@ -220,9 +222,7 @@
     if (calendar(s).day !== oldDay) { if (s.quick >= 3 && !s.claimed) s.money += 2200; s.quick = 0; s.claimed = false; }
     const block = Math.floor(s.minutes / 75);
     if (block !== s.weatherBlock) { s.weatherBlock = block; s.rain = Math.random() < 0.33; }
-    s.phaseTime += dt; s.sinceTap += dt;
-    if (s.lock > 0) { s.lock = Math.max(0, s.lock - dt); s.fatigue = 100 * s.lock / s.lockMax; }
-    else if (s.sinceTap > 0.62 || !traveling(s)) s.fatigue = Math.max(0, s.fatigue - dt * (23 + 4 * s.coolGear));
+    s.phaseTime += dt;
     if (s.phase !== "offer" && s.phase !== "dispatch" && s.phase !== "result") s.order.age += dt;
     if (traveling(s)) {
       const leg = s.phase === "toShop" ? s.order.pick : s.order.dist - s.order.pick;
@@ -274,7 +274,7 @@
   }
   const gearCost = level => 2500 * (level + 1);
   function buyGear(s, key) {
-    if (!["speedGear", "coolGear"].includes(key)) return "";
+    if (key !== "speedGear") return "";
     const level = s[key]; if (level >= 5) return "최고 단계에 도달했어요.";
     const cost = gearCost(level); if (s.money < cost) return "잔액이 부족해요. 배달로 운임을 모아 보세요.";
     s.money -= cost; s[key]++; return "장비를 강화했어요!";

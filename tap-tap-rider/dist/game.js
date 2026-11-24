@@ -27,7 +27,7 @@
   function note(msg) { $("scene-note").textContent = msg; $("scene-note").classList.add("on"); clearTimeout(noteTimer); noteTimer = setTimeout(() => $("scene-note").classList.remove("on"), 2000); }
   function persist() { G.save(s); }
   function snapshot() {
-    terrain = { w: world.clientWidth, h: world.clientHeight, riderWidth: hero.getBoundingClientRect().width };
+    terrain = { w: world.clientWidth, h: world.clientHeight, riderWidth: hero.clientWidth };
     $("particles").width = Math.max(1, Math.round(terrain.w / 2)); $("particles").height = Math.max(1, Math.round(terrain.h / 2));
   }
   function visualMapProgress() {
@@ -105,6 +105,7 @@
   function swapScene(animate = true) {
     const p = s.phase, o = s.order, [asset, loc, code] = scenes[p] || scenes.offer;
     const place = currentPlace(), streetScene = asset === "street";
+    world.dataset.scene = asset;
     $("street-strip").hidden = !streetScene;
     if (streetScene) strip.show(place, o);
     $("view").style.backgroundImage = streetScene ? "none" : 'url("assets/' + asset + '.webp?v=4")';
@@ -131,11 +132,8 @@
     if ($("weather").dataset.kind !== weather) { $("weather").dataset.kind = weather; $("weather").innerHTML = I(weather) + (s.rain ? "비" : time.night ? "밤" : "맑음"); }
     world.classList.toggle("rain", s.rain && scenes[p][0] === "street"); world.classList.toggle("night", time.night && scenes[p][0] === "street");
     $("wallet").textContent = won(s.money); $("rating").textContent = G.rating(s).toFixed(1); $("ride-type").textContent = G.vehicle(s).name;
-    const h = Math.round(s.fatigue); $("fatigue-value").innerHTML = h + "<span>%</span>"; $("fatigue-gauge").setAttribute("aria-valuenow", h);
-    $("heat-fill").style.width = h + "%"; $("heat-fill").style.background = h > 75 ? "#f69a70" : h > 45 ? "#e7c775" : "var(--mint)";
     $("speed").textContent = G.speed(s).toFixed(1);
-    $("boost").classList.toggle("ready", travel && !s.lock); $("boost").classList.toggle("exhausted", s.lock > 0); $("boost").setAttribute("aria-disabled", String(!travel || s.lock > 0));
-    $("boost-hint").innerHTML = s.lock ? "회복까지 " + Math.ceil(s.lock) + "초" : "<kbd>SPACE</kbd> 또는 탭";
+    $("boost").classList.toggle("ready", travel); $("boost").setAttribute("aria-disabled", String(!travel));
     $("quick-count").textContent = s.quick + "/3"; $("claim-dot").hidden = s.quick < 3 || s.claimed;
     if ($("route-dist")) { $("route-dist").textContent = distance((1 - s.progress) * (p === "toShop" ? o.pick : o.dist - o.pick)) + " 남음"; $("route-fill").style.width = s.progress * 100 + "%"; $("route-pct").textContent = Math.floor(s.progress * 100) + "%"; }
     if ($("goal-timer")) $("goal-timer").textContent = "목표 " + Math.ceil(o.age) + " / " + o.fastLimit + "초";
@@ -157,7 +155,7 @@
     $("player").style.bottom = p === "climb" ? (5.3 + 5 * Math.min(1, s.phaseTime / s.wait)) + "%" : "5.3%";
     const riding = moving || ["offer", "dispatch", "park", "parking", "shopArrive"].includes(p);
     $("player").dataset.vehicle = riding ? s.vehicle : "walk";
-    const stride = route?.stride ?? (p === "climb" ? Math.min(1, s.phaseTime / s.wait) * screenW * 0.22 * 180 / terrain.riderWidth : undefined);
+    const stride = route?.stride ?? (p === "climb" ? Math.min(1, s.phaseTime / s.wait) * screenW * 0.22 * 180 / (terrain.riderWidth * 2) : undefined);
     A.drawRider(hero, { gender: s.gender || "male", vehicle: riding ? s.vehicle : "walk", moving: moving || p === "climb" || p === "parking", boost: moving && s.boostTime > 0, time: reduce ? 0 : t, stride: reduce ? 0 : stride });
     if (!$("place-marker").hidden) {
       const x = route ? route.markerX : (scene === "hall" ? 0.81 : 0.74) * imgW + (screenW - imgW) / 2;
@@ -202,12 +200,12 @@
         }).join("") + "</div></fieldset>" +
         '<div class="setting-row"><strong>라이더</strong>' + button("editRider", (s.gender === "female" ? "여성" : s.gender === "male" ? "남성" : "라이더") + " 선택", "sub-btn") + "</div>";
       for (const [key, label] of [["music", "배경음악"], ["sfx", "효과음"]]) html += '<div class="setting-row"><strong>' + label + "</strong>" + button("toggle", s[key] ? "켜짐" : "꺼짐", "toggle" + (s[key] ? " chosen" : ""), key) + "</div>";
-      html += '<div class="setting-row"><strong>전체 화면</strong>' + button("fullscreen", document.fullscreenElement ? "해제" : "전환", "sub-btn") + '</div><p style="margin-top:12px">이동 중 화면을 탭하거나 Space를 누르면 가속합니다. 피로가 가득 차기 전에 잠깐 쉬면 더 빨리 회복해요.</p>';
+      html += '<div class="setting-row"><strong>전체 화면</strong>' + button("fullscreen", document.fullscreenElement ? "해제" : "전환", "sub-btn") + '</div><p style="margin-top:12px">이동 중 화면을 탭하거나 Space를 누르면 가속합니다.</p>';
     } else if (modal === "garage") {
       title = "라이더 차고"; kicker = "GARAGE"; html = '<div class="modal-money">' + I("coin") + " " + won(s.money) + '</div><div class="modal-tabs">' + button("garageTab", "배달 수단", garageTab === "rides" ? "chosen" : "", "rides") + button("garageTab", "강화 장비", garageTab === "gear" ? "chosen" : "", "gear") + "</div>";
       if (garageTab === "rides") {
         html += '<div class="garage-grid">' + G.vehicles.map(v => { const owned = s.owned.includes(v.id), active = v.id === s.vehicle; return button("vehicle", '<canvas data-vehicle="' + v.id + '"></canvas><b>' + v.name + '</b><small class="' + (owned ? "owned" : "") + '">' + (active ? "장착 중" : owned ? "장착하기" : won(v.cost)) + '</small><small class="owned">' + v.speed + " km/h</small>", "vehicle" + (active ? " chosen" : ""), v.id); }).join("") + "</div>";
-      } else for (const [id, name, desc] of [["speedGear", "경량 배달 가방", "단계마다 기본 속도 +12%"], ["coolGear", "쿨링 조끼", "단계마다 피로 회복 속도 증가"]]) {
+      } else for (const [id, name, desc] of [["speedGear", "경량 배달 가방", "단계마다 기본 속도 +12%"]]) {
         html += '<div class="list-row"><div><strong>' + name + " · Lv." + s[id] + "</strong><small>" + desc + "</small></div>" + button("gearBuy", s[id] >= 5 ? "최고 단계" : won(G.gearCost(s[id])) + " 강화", "sub-btn", id, s[id] >= 5) + "</div>";
       }
       html += '<div class="modal-note" role="status">' + modalMessage + "</div>";
@@ -254,7 +252,7 @@
     if (modal) return;
     const result = G.tap(s);
     if (!result) { if (!G.traveling(s)) note("가게나 배달지로 이동할 때 탭하세요."); return; }
-    S.effect(result === "locked" ? "lock" : "boost"); if (result === "locked") note("피로가 가득 찼어요! 잠시 회복합니다.");
+    S.effect("boost");
     $("boost").classList.add("hit"); setTimeout(() => $("boost").classList.remove("hit"), 85); status(); paint(anim);
   }
   function action(id, value) {

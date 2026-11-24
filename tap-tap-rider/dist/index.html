@@ -8,14 +8,14 @@
   <link rel="icon" href="assets/helmet.png?v=2">
   <link rel="preload" href="assets/jua.ttf?v=3" as="font" type="font/ttf" crossorigin>
   <link rel="preload" href="assets/suit.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="game.css?v=5">
+  <link rel="stylesheet" href="game.css?v=7">
   <script defer src="painted-art.js?v=6"></script>
   <script defer src="art.js?v=6"></script>
   <script defer src="visuals.js?v=4"></script>
   <script defer src="sound.js"></script>
-  <script defer src="model.js?v=4"></script>
+  <script defer src="model.js?v=7"></script>
   <script defer src="streets.js?v=5"></script>
-  <script defer src="game.js?v=5"></script>
+  <script defer src="game.js?v=7"></script>
 </head>
 <body>
 <main id="game">
@@ -37,8 +37,6 @@
   <section class="console" aria-label="배달 조작">
     <article class="panel order-panel" id="order-panel" aria-live="polite"></article>
     <article class="panel condition"><div class="panel-heading"><span><i data-icon="pulse"></i>라이더 상태</span><b id="ride-type" class="small-tag">도보</b></div>
-      <div class="fatigue-label"><span><i data-icon="battery"></i> 피로도</span><b id="fatigue-value">0<span>%</span></b></div>
-      <div class="gauge" id="fatigue-gauge" role="meter" aria-label="피로도" aria-valuemin="0" aria-valuemax="100"><div id="heat-fill"></div></div>
       <div class="speed-label"><span>현재 속도</span><strong><b id="speed">0.0</b> <small>km/h</small></strong></div>
     </article>
     <button class="boost-panel" id="boost" data-action="boost" aria-disabled="true"><span class="bolt"><i data-icon="bolt"></i></span><strong>탭 부스트</strong><small id="boost-hint"><kbd>SPACE</kbd> 또는 탭</small></button>
