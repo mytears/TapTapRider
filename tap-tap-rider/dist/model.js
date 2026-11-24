@@ -220,6 +220,12 @@
     s.order.adUnlocked = true;
     return true;
   }
+  function useRegularFare(s, orderId) {
+    if (s.phase !== "offer" || s.order.id !== orderId || !s.order.premium || s.order.adUnlocked) return false;
+    s.order.fare = s.order.regularFare;
+    s.order.premium = false;
+    return true;
+  }
   function next(s) { s.wait = calendar(s).peak ? 1.5 : 5; phase(s, "dispatch"); }
   function tap(s) {
     if (!traveling(s)) return false;
@@ -296,7 +302,7 @@
   function claimMission(s) { if (s.quick < 3 || s.claimed) return false; s.money += 2200; s.claimed = true; return true; }
 
   window.RiderGame = {
-    fresh, load, save, vehicles, vehicle, calendar, rating, start, unlockPremium, tap, speed, advance, act, traveling,
+    fresh, load, save, vehicles, vehicle, calendar, rating, start, unlockPremium, useRegularFare, tap, speed, advance, act, traveling,
     buyVehicle, buyGear, gearCost, claimMission, foods, foodById, shopName,
     themes, theme, presetRegions, cleanRegion, placeFor, setRegion, setTheme
   };

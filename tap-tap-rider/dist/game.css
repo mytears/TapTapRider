@@ -284,6 +284,9 @@ dialog::backdrop { background: #283f3a72; backdrop-filter: blur(3px); }
 .premium-btn { color: #613714; background: #f3c665; }
 .premium-btn:hover { background: #eab74d; }
 .premium-description { margin: 0; color: #8b5b25; font-size: 13px; }
+.premium-choices { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+.premium-choices button { display: flex; flex-direction: column; gap: 2px; padding: 7px 5px; font-size: 13px; }
+.premium-choices b { font-size: 17px; }
 .premium-offer { padding: 18px; margin-bottom: 14px; border: 1px solid #e3c58a; border-radius: 16px; background: linear-gradient(135deg,#fff6d9,#f6e4b9); }
 .premium-offer > span { font-weight: 800; font-size: 14px; color: #8b5b25; }
 .premium-offer > strong { display: block; margin: 4px 0; color: #735018; font-size: 32px; }
@@ -311,6 +314,10 @@ dialog::backdrop { background: #283f3a72; backdrop-filter: blur(3px); }
   .dock .nav-items button i { width: 12px; height: 12px; }
   .achievement-card { gap: 8px; padding: 10px; }
   .achievement-icon { display: none; }
+}
+@media (max-height: 560px) and (orientation: landscape) {
+  .premium-choices button { flex-direction: row; flex-wrap: wrap; gap: 3px 6px; padding: 4px; font-size: 11px; }
+  .premium-choices b { font-size: 13px; }
 }
 
 @media (max-width: 900px) {

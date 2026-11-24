@@ -66,10 +66,11 @@
     let html = "";
     if (p === "offer") {
       const locked = o.premium && !o.adUnlocked;
-      const accept = locked ? button("premiumAd", "광고 보고 해금", "main-btn premium-btn") : button("accept", I("check") + "콜 수락");
+      const refresh = '<button class="refresh-btn" data-action="next" title="다른 콜 찾기" aria-label="다른 콜 찾기">' + I("refresh") + "</button>";
       html = head("신규 배달 콜") + detail(esc(o.name), esc(o.shop) + I("arrow") + esc(o.home)) +
-        (o.premium ? '<p class="premium-description">' + (locked ? "광고 시청 완료 후 수락할 수 있어요." : "광고 보상 획득 · 콜을 수락하세요.") + '</p>' : "") +
-        actions(pay(), '<button class="refresh-btn" data-action="next" title="다른 콜 찾기" aria-label="다른 콜 찾기">' + I("refresh") + "</button>" + accept);
+        (o.adUnlocked ? '<p class="premium-description">광고 보상 획득 · 콜을 수락하세요.</p>' : "") +
+        actions(locked ? '<span class="service-text">광고 보너스 선택 가능</span>' : pay(), refresh + (locked ? "" : button("accept", I("check") + "콜 수락"))) +
+        (locked ? '<div class="premium-choices">' + button("acceptRegular", "광고 없이 수락 <b>" + won(o.regularFare) + "</b>", "sub-btn") + button("premiumAd", "광고 보고 수락 <b>" + won(o.fare) + "</b>", "main-btn premium-btn") + '</div>' : "");
     }
     else if (p === "dispatch") html = step("배차 대기", "다음 콜 찾는 중…", G.calendar(s).peak ? "콜이 많은 피크 시간이에요." : esc(currentPlace().name) + " 근처 가게에서 새 콜을 찾고 있어요.", "", "", "radio");
     else if (G.traveling(s)) {
@@ -308,6 +309,11 @@
       watchButton.disabled = false;
     }
   }
+  function acceptOffer() {
+    if (s.order.premium && !s.order.adUnlocked) { openModal("premiumAd"); return; }
+    if (!s.gender) { choiceContext = "start"; choice = "male"; openModal("rider"); }
+    else { G.start(s); S.effect("accept"); swapScene(); }
+  }
   function action(id, value) {
     S.unlock(s);
     if (id === "boost") { boost(); return; }
@@ -326,9 +332,9 @@
     }
     else if (id === "toggle") { if (["music", "sfx"].includes(value)) { s[value] = !s[value]; if (s[value]) s.muted = false; } drawModal(); status(); }
     else if (id === "accept" && s.phase === "offer") {
-      if (s.order.premium && !s.order.adUnlocked) { openModal("premiumAd"); return; }
-      if (!s.gender) { choiceContext = "start"; choice = "male"; openModal("rider"); }
-      else { G.start(s); S.effect("accept"); swapScene(); }
+      acceptOffer();
+    } else if (id === "acceptRegular" && G.useRegularFare(s, s.order.id)) {
+      acceptOffer();
     } else if (id === "editRider") { choiceContext = "settings"; choice = s.gender || "male"; openModal("rider"); }
     else if (id === "choose") { choice = value; drawModal(); }
     else if (id === "confirmRider") {

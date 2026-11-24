@@ -22,6 +22,17 @@ const state = G.fresh();
 state.gender = 'male';
 assert.equal(state.order.premium, false);
 assert.equal(G.start(state), true);
+
+const optionalAd = G.fresh();
+optionalAd.gender = 'female';
+Object.assign(optionalAd.order, {premium: true, regularFare: 3200, fare: 8000});
+assert.equal(G.start(optionalAd), false);
+assert.equal(G.useRegularFare(optionalAd, optionalAd.order.id + 1), false);
+assert.equal(G.useRegularFare(optionalAd, optionalAd.order.id), true);
+assert.equal(optionalAd.order.fare, 3200);
+assert.equal(G.unlockPremium(optionalAd, optionalAd.order.id), false);
+assert.equal(G.start(optionalAd), true);
+assert.equal(G.useRegularFare(optionalAd, optionalAd.order.id), false);
 for (let i = 0; i < 200; i++) assert.equal(G.tap(state), 'boost');
 state.phase = 'handoff';
 state.order.age = 10;
