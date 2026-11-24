@@ -37,7 +37,16 @@
     const frame = (female ? 1 : 0) + (blink > 0.86 ? 2 : 0);
     return sprite(c, "heads", frame, female ? -27 : -25, -32, female ? 53 : 51, female ? 53.4 : 51.1);
   }
-  function bag(c) { return sprite(c, "rider", 11, -48, -47, 41, 46); }
+  function bag(c) {
+    if (!sheets.rider) return false;
+    // The atlas shows the straps on the left. Face them toward the rider's back.
+    c.save();
+    c.translate(-55, 0);
+    c.scale(-1, 1);
+    sprite(c, "rider", 11, -48, -47, 41, 46);
+    c.restore();
+    return true;
+  }
   function jacket(c, female) {
     if (!sheets.rider) return false;
     // Hide the sheet's resting sleeve: the articulated sleeve is drawn separately.
