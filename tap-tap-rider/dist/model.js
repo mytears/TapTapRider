@@ -118,6 +118,7 @@
   const roll = n => Math.floor(Math.random() * n);
   const initialMinute = 18 * 60 + 20;
   const STORE = "taptap-rider.game.v1";
+  const premiumMultiplier = 5;
 
   function calendar(s) {
     const day = Math.floor(s.minutes / 1440), tm = Math.floor(s.minutes) % 1440, h = Math.floor(tm / 60);
@@ -156,7 +157,7 @@
     const base = Math.round((1760 + dist * 1380) / 100) * 100;
     const regularFare = Math.round(base * (peak ? 1.1 : 1) * (rain ? 1.25 : 1) * (0.85 + rate * 0.03) / 100) * 100;
     const premium = premiumOffer(s, first);
-    const fare = premium ? regularFare * 2.5 : regularFare;
+    const fare = premium ? regularFare * premiumMultiplier : regularFare;
     const floor = first ? 4 : 2 + roll(7), room = first ? 2 : 1 + roll(3);
     const place = placeFor(s.regionName, s.themeId);
     return locateOrder({
@@ -190,6 +191,9 @@
       const saved = JSON.parse(localStorage.getItem(STORE));
       if (saved?.version === 1 && saved.order?.food && Array.isArray(saved.owned) && Number.isFinite(saved.money) && Array.isArray(saved.history)) {
         const state = Object.assign(fresh(), saved);
+        if (state.phase !== "result" && state.order.premium && Number.isFinite(state.order.regularFare)) {
+          state.order.fare = state.order.regularFare * premiumMultiplier;
+        }
         // Refund retired recovery equipment once, then remove its saved level.
         const coolingLevel = Math.max(0, Math.min(5, Math.floor(Number(state.coolGear) || 0)));
         state.money += 2500 * coolingLevel * (coolingLevel + 1) / 2;
@@ -314,7 +318,7 @@
   function claimMission(s) { if (s.quick < 3 || s.claimed) return false; s.money += 2200; s.claimed = true; return true; }
 
   window.RiderGame = {
-    fresh, load, save, vehicles, vehicle, calendar, rating, start, unlockPremium, useRegularFare, tap, speed, advance, act, traveling,
+    fresh, load, save, vehicles, vehicle, calendar, rating, start, unlockPremium, useRegularFare, premiumMultiplier, tap, speed, advance, act, traveling,
     buyVehicle, buyGear, gearCost, claimMission, foods, foodById, shopName,
     themes, theme, presetRegions, cleanRegion, placeFor, setRegion, setTheme
   };

@@ -23,9 +23,30 @@ state.gender = 'male';
 assert.equal(state.order.premium, false);
 assert.equal(G.start(state), true);
 
+// Upgrade existing premium calls once; regular fares and completed payouts stay intact.
+for (const phase of ['offer', 'toHome', 'result']) {
+  const oldCall = G.fresh();
+  oldCall.phase = phase;
+  Object.assign(oldCall.order, {premium: true, regularFare: 3200, fare: 8000, paid: 8000});
+  G.save(oldCall);
+  const updated = G.load();
+  assert.equal(updated.order.fare, phase === 'result' ? 8000 : 16000);
+  assert.equal(updated.order.paid, 8000);
+  G.save(updated);
+  assert.equal(G.load().order.fare, updated.order.fare);
+}
+const paidPremium = G.fresh();
+paidPremium.gender = 'male';
+Object.assign(paidPremium.order, {premium: true, regularFare: 3200, fare: 16000, adUnlocked: true});
+assert.equal(G.start(paidPremium), true);
+paidPremium.phase = 'handoff';
+G.act(paidPremium, 'deliver');
+assert.equal(paidPremium.money, 16000);
+assert.equal(paidPremium.total, 16000);
+
 const optionalAd = G.fresh();
 optionalAd.gender = 'female';
-Object.assign(optionalAd.order, {premium: true, regularFare: 3200, fare: 8000});
+Object.assign(optionalAd.order, {premium: true, regularFare: 3200, fare: 16000});
 assert.equal(G.start(optionalAd), false);
 assert.equal(G.useRegularFare(optionalAd, optionalAd.order.id + 1), false);
 assert.equal(G.useRegularFare(optionalAd, optionalAd.order.id), true);
@@ -61,7 +82,7 @@ for (let i = 1; i <= 5; i++) {
   assert.equal(state.order.premium, i === 5);
 }
 assert.equal(state.order.premium, true);
-assert.equal(state.order.fare, state.order.regularFare * 2.5);
+assert.equal(state.order.fare, state.order.regularFare * 5);
 assert.equal(G.start(state), false);
 assert.equal(G.unlockPremium(state, state.order.id - 1), false);
 assert.equal(G.unlockPremium(state, state.order.id), true);

@@ -56,7 +56,7 @@
   function renderOrder() {
     const p = s.phase, o = s.order;
     const wrongFoodInfo = G.foodById(o.wrongFood && o.wrongFood !== o.food ? o.wrongFood : (G.foods.find(f => f[0] !== o.food)?.[0] || "pizza"));
-    const fareTag = o.premium ? '<em class="fare-tag premium-tag">특별 콜 · 운임 2.5배</em>' : p === "offer" && (o.rain || o.peak) ? '<em class="fare-tag">' + (o.rain ? "우천 할증" : "피크 할증") + "</em>" : "";
+    const fareTag = o.premium ? '<em class="fare-tag premium-tag">특별 콜 · 운임 ' + (o.fare / o.regularFare || G.premiumMultiplier) + '배</em>' : p === "offer" && (o.rain || o.peak) ? '<em class="fare-tag">' + (o.rain ? "우천 할증" : "피크 할증") + "</em>" : "";
     const head = (label, icon = "radio") => '<div class="panel-heading"><span>' + I(icon) + label + fareTag + "</span><small>" + (G.traveling(s) ? '<span id="goal-timer"></span>' : "CALL #" + String(o.id).padStart(3, "0")) + "</small></div>";
     const food = '<div class="item-art"><canvas id="food" aria-label="' + esc(o.name) + '"></canvas></div>';
     const detail = (title, desc) => '<div class="offer-detail">' + food + '<div class="offer-text"><h2>' + title + "</h2><p>" + desc + "</p></div></div>";
@@ -247,7 +247,7 @@
       html += (displayed ? "" : '<p class="empty">' + (achievementFilter === "ready" ? "받을 보상을 모두 수령했어요." : "모든 업적을 달성했어요!") + '</p>') + '</div>';
     } else if (modal === "premiumAd") {
       title = "특별 콜 해금"; kicker = "REWARDED CALL";
-      html = '<div class="premium-offer"><span>운임 2.5배</span><strong>' + won(o.fare) + '</strong><p>' + esc(o.shop) + ' · ' + esc(o.name) + '</p></div><p>광고 시청을 완료하면 이 특별 콜을 수락할 수 있어요. 중간에 닫으면 해금되지 않아요.</p>' +
+      html = '<div class="premium-offer"><span>운임 ' + (o.fare / o.regularFare || G.premiumMultiplier) + '배</span><strong>' + won(o.fare) + '</strong><p>' + esc(o.shop) + ' · ' + esc(o.name) + '</p></div><p>광고 시청을 완료하면 이 특별 콜을 수락할 수 있어요. 중간에 닫으면 해금되지 않아요.</p>' +
         (!Ads.android ? '<p class="ad-test-notice">웹 미리보기에서는 5초 보상 광고 테스트를 진행합니다.</p>' : '<p class="ad-test-notice">현재 테스트 버전에는 Google 테스트 광고가 표시됩니다.</p>') +
         '<p id="ad-status" role="status" class="ad-status"></p>' + button("watchAd", Ads.android ? "광고 시청 시작" : "테스트 시청 시작", "main-btn wide");
     } else if (modal === "history") {

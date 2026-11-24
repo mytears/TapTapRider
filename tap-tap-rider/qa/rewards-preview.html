@@ -13,7 +13,7 @@ document.getElementById('prepare').onclick = () => {
   const state = RiderGame.fresh();
   Object.assign(state, {gender:'female',count:12,total:50000,stars:58,money:5000});
   Object.assign(state.stats, {fast:4,perfect:3,peak:3,foods:['burger','pizza','ramen']});
-  Object.assign(state.order, {premium:true,regularFare:state.order.fare,fare:state.order.fare*2.5,adUnlocked:false});
+  Object.assign(state.order, {premium:true,regularFare:state.order.fare,fare:state.order.fare*RiderGame.premiumMultiplier,adUnlocked:false});
   RiderAchievements.update(state);
   RiderGame.save(state);
   location.href = '../dist/index.html';
