@@ -1,5 +1,13 @@
 # Painted artwork, revision 5
 
+## Wearable backpack, revision 9
+
+The built-in imagegen tool generated `dist/assets/courier-backpack-v9.png`. This side-profile sprite has its padded contact edge and strap tabs on the right, next to the rider's back. `painted-art.js` draws the articulated shoulder strap over the jacket so it connects both bag attachment points to the shoulder and torso. The existing bicycle rig now draws the opposite leg behind the frame and places each shoe's sole over its crank orbit.
+
+Final backpack prompt follows.
+
+Use case: precise-object-edit. Production transparent sprite for a cute side-scrolling Korean delivery game. The reference sheet gives ONLY bag materials and the courier color palette. Create ONE redesigned forest-green insulated food delivery BACKPACK, isolated on true transparent background, no person, no clothing, no other objects. This backpack will be worn by a character facing RIGHT, seen from the character's LEFT SIDE. IMPORTANT ORIENTATION: strictly SIDE PROFILE bag. The flat padded back panel which TOUCHES THE WEARER is the RIGHTMOST edge and is nearly vertical, the cargo box protrudes to the LEFT, the outer rear face points LEFT and should only appear as a very narrow sliver. Show the bag's LEFT SIDE PANEL as the main visible surface, NOT its large front flap. Soft compact rounded insulated rectangular form, slightly taller than wide, realistic wearable proportions, a narrow padded back on the RIGHT, two small shoulder-strap attachment tabs pointing toward the RIGHT from upper-right and lower-right. Do not render large loose strap loops: articulated shoulder straps will be drawn by the game and need clear attachment tabs on the RIGHT. The top lid slopes slightly down toward LEFT, obeying side profile perspective. Matte dark jade-green canvas with subtle folds, stitched seams, cream reflective horizontal side strip, small embroidered twin-leaf patch on the SIDE PANEL, simple brass zipper pulls, dark padded right contact edge. Cute softly painted game art, warm golden light upper-left and warm reflected shadows, rounded forms matching miniature chibi courier. Avoid a bulky cube viewed from front, avoid 3/4 product photography, avoid front-facing bag or frontal flap with two buckles. No dangling handles or straps protruding to LEFT, no ground shadow, no text, no border. The entire bag including tabs must fit with generous transparent margins. Single sprite.
+
 Generated with the built-in imagegen tool. The existing street.webp was the style reference. Original generated PNG alpha is preserved in the project assets.
 
 Assets:

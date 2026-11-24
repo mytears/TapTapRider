@@ -4,6 +4,7 @@
   const base = new URL("assets/", document.currentScript.src);
   const sheets = {};
   const bounds = {
+    backpack: [[218,154,762,969]],
     // Matching open/closed frames use identical crop dimensions to avoid blink jitter.
     heads: [[65,44,514,515],[657,46,538,542],[65,649,514,515],[657,651,538,542]],
     rider: [[52,15,284,328],[388,17,324,332],[793,11,242,337],[1152,27,235,315],[119,374,129,336],[478,373,128,335],[858,383,103,324],[1204,386,140,313],[105,738,164,334],[469,737,133,331],[739,820,326,177],[1102,748,324,308]],
@@ -11,7 +12,7 @@
     foods: [[4,45,276,224],[290,48,270,221],[570,26,264,243],[848,13,264,254],[1126,36,272,226],[5,340,275,190],[298,319,246,211],[561,322,275,223],[843,290,268,259],[1122,316,277,223],[5,605,275,212],[287,584,270,242],[567,564,267,261],[844,584,265,240],[1122,565,276,257],[5,881,275,206],[286,882,274,198],[568,880,268,211],[845,868,266,228],[1142,848,232,257]]
   };
   const foodIds = ["burger","pizza","chicken","noodles","sushi","tteokbokki","sandwich","jjajang","ramen","tonkatsu","gimbap","bibimbap","kimchistew","jokbal","malatang","pasta","curry","taco","bakery","bingsu"];
-  const ready = Promise.all(Object.entries({rider:"rider-parts-v5.png",heads:"rider-heads-v6.png",vehicles:"vehicles-v5.png",foods:"foods-v5.png"}).map(([key,file]) => new Promise(resolve => {
+  const ready = Promise.all(Object.entries({rider:"rider-parts-v5.png",heads:"rider-heads-v6.png",backpack:"courier-backpack-v9.png",vehicles:"vehicles-v5.png",foods:"foods-v5.png"}).map(([key,file]) => new Promise(resolve => {
     const img = new Image();
     img.onload = () => { sheets[key] = img; resolve(true); };
     // Keep the original artwork available if an atlas cannot load.
@@ -38,12 +39,31 @@
     return sprite(c, "heads", frame, female ? -27 : -25, -32, female ? 53 : 51, female ? 53.4 : 51.1);
   }
   function bag(c) {
-    if (!sheets.rider) return false;
-    // The atlas shows the straps on the left. Face them toward the rider's back.
+    return sprite(c, "backpack", 0, -42, -46, 35, 44.5);
+  }
+  function straps(c) {
+    if (!sheets.backpack) return false;
     c.save();
-    c.translate(-55, 0);
-    c.scale(-1, 1);
-    sprite(c, "rider", 11, -48, -47, 41, 46);
+    c.lineCap = "round";
+    c.lineJoin = "round";
+    // Follow the shoulder and ribcage, joining the bag's top and lower tabs.
+    c.beginPath();
+    c.moveTo(-11, -41);
+    c.bezierCurveTo(-5, -44, 2, -38, 1, -31);
+    c.bezierCurveTo(0, -23, -4, -13, -11, -7);
+    c.strokeStyle = "#263e32";
+    c.lineWidth = 5.2;
+    c.stroke();
+    c.strokeStyle = "#668267";
+    c.lineWidth = 3.5;
+    c.stroke();
+    c.strokeStyle = "#d2bd87";
+    c.lineWidth = 0.7;
+    c.stroke();
+    c.fillStyle = "#caa16a";
+    c.fillRect(-3.8, -23, 4.4, 4);
+    c.fillStyle = "#354d3a";
+    c.fillRect(-2.8, -22, 2.4, 2);
     c.restore();
     return true;
   }
@@ -128,5 +148,5 @@
     const scale=Math.min(90/box[2],78/box[3]), w=box[2]*scale,h=box[3]*scale;
     return sprite(c,"foods",index,(96-w)/2,(88-h)/2,w,h);
   }
-  window.PaintedSprites={ready,face,bag,jacket,sneaker,limbs,arm,vehicle,food,rides};
+  window.PaintedSprites={ready,face,bag,straps,jacket,sneaker,limbs,arm,vehicle,food,rides};
 })();

@@ -401,6 +401,7 @@
   function torso(c, female, elbow, hand, headTilt, t, bagSwing = 0) {
     transform(c, 0, 0, 1, bagSwing, () => layer(c, "courier-bag-v4", -50, -52, 48, 60, bag));
     layer(c, "courier-jacket-v4-" + female, -22, -50, 46, 58, b => jacket(b, female));
+    painted?.straps(c);
     arm(c, elbow, hand, female, false);
     transform(c, 4, -57, 1, headTilt, () => {
       const blink = Math.max(0, 1 - Math.abs(((t + 1400) % 4200) - 2070) / 370);
@@ -705,20 +706,22 @@
 
     transform(c, 90, 130, 1, pitch, () => {
       transform(c, -90, -130, 1, 0, () => {
-        if (kick) kickboard(c, turn, boost);
-        else if (motor) motorcycle(c, v === "sport", turn, boost);
-        else bike(c, v === "ebike", turn, boost);
-
         const pose = painted?.rides[v];
         const hx = pose?.seat[0] ?? (kick ? 79 : 76), hy = (pose?.seat[1] ?? (kick ? 93 : 85)) + bump;
         const sc = kick ? 0.94 : 0.86, lean = kick ? 0.03 : v === "sport" ? 0.25 : motor ? 0.12 : 0.16;
         const hFar = [hx - 4, hy], hNear = [hx + 2, hy + 1];
         const axle = pose?.axle || [78, 118], pedal = [Math.cos(turn) * 10, Math.sin(turn) * 9];
-        const farFoot = kick ? [56, 118] : motor ? [82, 106] : [axle[0] - pedal[0] - 3, axle[1] - pedal[1] - 3];
-        const nearFoot = kick ? [83, 118] : motor ? [94, 109] : [axle[0] + pedal[0] - 3, axle[1] + pedal[1] - 3];
+        const farFoot = kick ? [56, 118] : motor ? [82, 106] : [axle[0] - pedal[0] - 6, axle[1] - pedal[1] - 5.1];
+        const nearFoot = kick ? [83, 118] : motor ? [94, 109] : [axle[0] + pedal[0] - 6.5, axle[1] + pedal[1] - 5.5];
 
         limbs(c, hFar, kneeFor(hFar, farFoot, kick ? 21 : 23), farFoot, true);
         sneaker(c, ...farFoot, 0.77, -0.06, true);
+
+        // The opposite leg belongs behind the frame and drivetrain.
+        if (kick) kickboard(c, turn, boost);
+        else if (motor) motorcycle(c, v === "sport", turn, boost);
+        else bike(c, v === "ebike", turn, boost);
+
         limbs(c, hNear, kneeFor(hNear, nearFoot, kick ? 20 : 23), nearFoot, false);
         sneaker(c, ...nearFoot, 0.83, -0.04, false);
 
