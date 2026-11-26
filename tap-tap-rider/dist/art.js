@@ -707,14 +707,19 @@
     transform(c, 90, 130, 1, pitch, () => {
       transform(c, -90, -130, 1, 0, () => {
         const pose = painted?.rides[v];
-        const hx = pose?.seat[0] ?? (kick ? 79 : 76), hy = (pose?.seat[1] ?? (kick ? 93 : 85)) + bump;
-        const sc = kick ? 0.94 : 0.86, lean = kick ? 0.03 : v === "sport" ? 0.25 : motor ? 0.12 : 0.16;
+        const hx = pose?.seat[0] ?? 76, hy = (pose?.seat[1] ?? (kick ? 79 : 85)) + bump * (kick ? 0.35 : 1);
+        const sc = kick ? 0.84 : 0.86, lean = kick ? 0.015 : v === "sport" ? 0.25 : motor ? 0.12 : 0.16;
         const hFar = [hx - 4, hy], hNear = [hx + 2, hy + 1];
         const axle = pose?.axle || [78, 118], pedal = [Math.cos(turn) * 10, Math.sin(turn) * 9];
-        const farFoot = kick ? [56, 118] : motor ? [82, 106] : [axle[0] - pedal[0] - 6, axle[1] - pedal[1] - 5.1];
-        const nearFoot = kick ? [83, 118] : motor ? [94, 109] : [axle[0] + pedal[0] - 6.5, axle[1] + pedal[1] - 5.5];
+        const farFoot = kick || motor ? (pose?.feet[0] || (kick ? [64,118] : [82,106])) : [axle[0] - pedal[0] - 6, axle[1] - pedal[1] - 5.1];
+        const nearFoot = kick || motor ? (pose?.feet[1] || (kick ? [83,118] : [94,109])) : [axle[0] + pedal[0] - 6.5, axle[1] + pedal[1] - 5.5];
 
-        limbs(c, hFar, kneeFor(hFar, farFoot, kick ? 21 : 23), farFoot, true);
+        // A standing scooter stance needs only a soft knee bend, unlike a
+        // seated rider's bent cycling legs. Keep both soles on the deck.
+        const knee = (hip,foot) => kick
+          ? [(hip[0]+foot[0])/2+2,(hip[1]+foot[1])/2]
+          : kneeFor(hip,foot,23);
+        limbs(c, hFar, knee(hFar, farFoot), farFoot, true);
         sneaker(c, ...farFoot, 0.77, -0.06, true);
 
         // The opposite leg belongs behind the frame and drivetrain.
@@ -722,13 +727,16 @@
         else if (motor) motorcycle(c, v === "sport", turn, boost);
         else bike(c, v === "ebike", turn, boost);
 
-        limbs(c, hNear, kneeFor(hNear, nearFoot, kick ? 20 : 23), nearFoot, false);
+        limbs(c, hNear, knee(hNear, nearFoot), nearFoot, false);
         sneaker(c, ...nearFoot, 0.83, -0.04, false);
 
         const grip = pose?.grip || (kick ? [117, 55] : motor ? [113, 66] : [128, 62]);
         const dx = (grip[0] - hx) / sc, dy = (grip[1] - hy) / sc;
         const hand = [dx * Math.cos(lean) + dy * Math.sin(lean), -dx * Math.sin(lean) + dy * Math.cos(lean)];
-        transform(c, hx, hy, sc, lean, () => torso(c, female, [hand[0] * 0.49 + 3, hand[1] * 0.44 - 9], hand, -lean * 0.65, t));
+        const elbow = kick
+          ? [(hand[0]-8)/2,(hand[1]-33)/2+2.5]
+          : [hand[0] * 0.49 + 3, hand[1] * 0.44 - 9];
+        transform(c, hx, hy, sc, lean, () => torso(c, female, elbow, hand, -lean * 0.65, t));
       });
     });
   }

@@ -15,7 +15,15 @@ Assets:
 - dist/assets/vehicles-v5.png: 4 × 2 atlas, shoe and seven vehicles.
 - dist/assets/foods-v5.png: 5 × 4 atlas, all twenty foods in model.js order.
 
-Renderer: dist/painted-art.js. Source rectangles exclude neighboring sprites. Character joint and foot-stride logic remains in art.js; sheets replace the drawing of those articulated parts. Vehicle anchor coordinates specify saddle, handlebar and crank positions. Wheels rotate in clipped axle regions. Loading falls back to the existing procedural art and refreshes cached canvases once images are ready. No save-game schema change.
+Renderer: dist/painted-art.js. Source rectangles exclude neighboring sprites. Character joint and foot-stride logic remains in art.js; sheets replace the drawing of those articulated parts. Vehicle anchor coordinates specify saddle, handlebar and crank positions. Loading falls back to the existing procedural art and refreshes cached canvases once images are ready. No save-game schema change.
+
+## Articulation repair, November 2026
+
+Long sleeves are now split into upper and lower fabric segments, with the original cuff ending at the wrist and a proportionate hand-only crop. The torso uses only the jacket's front panel, excluding its baked-in resting sleeve. Cloth joint patches close knee gaps during deep bends.
+
+Wheel interiors are drawn independently beneath cached vehicle bodies. Atlas-coordinate masks restore stationary forks, stays, chain guards and exhausts above the rotating spokes and hubs. No part of the composite vehicle atlas is rotated. Tires and body highlights remain fixed. Vehicle crops retain their original aspect ratios; saddle, grip, crank and footrest anchors follow that same transform. Original fixed bicycle pedals are masked out and replaced by cranks sharing the rider's foot phase.
+
+Validation: `qa/art.test.cjs` uses Playwright against the local preview server on port 4190. It checks 256 poses, 10 fixed hardware samples across three wheel angles, all 12 rotating wheels, vehicle aspect ratios and game startup errors. Set `ART_BROWSER` to a local Chromium executable if needed. `qa/render-art.cjs` optionally uses `@napi-rs/canvas` to render a contact sheet and 384 poses; pass an output PNG path and optionally `ART_TIME` to inspect a specific frame. These QA dependencies are not needed by the game.
 
 Local visual check: from tap-tap-rider, run `python -m http.server 4190 --bind 127.0.0.1`, then open http://127.0.0.1:4190/qa/art-preview.html. Includes both riders, all vehicles, twenty foods, movement/boost toggles and 256 render combinations. This QA page is outside dist and is not published to Pages.
 

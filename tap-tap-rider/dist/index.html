@@ -8,16 +8,16 @@
   <link rel="icon" href="assets/helmet.png?v=2">
   <link rel="preload" href="assets/jua.ttf?v=3" as="font" type="font/ttf" crossorigin>
   <link rel="preload" href="assets/suit.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="game.css?v=11">
+  <link rel="stylesheet" href="game.css?v=12">
   <script defer src="painted-art.js?v=9"></script>
   <script defer src="art.js?v=9"></script>
   <script defer src="visuals.js?v=4"></script>
-  <script defer src="sound.js"></script>
-  <script defer src="achievements.js?v=10"></script>
+  <script defer src="sound.js?v=14"></script>
+  <script defer src="achievements.js?v=11"></script>
   <script defer src="ads.js?v=10"></script>
-  <script defer src="model.js?v=13"></script>
+  <script defer src="model.js?v=14"></script>
   <script defer src="streets.js?v=5"></script>
-  <script defer src="game.js?v=13"></script>
+  <script defer src="game.js?v=14"></script>
 </head>
 <body>
 <main id="game">
@@ -32,19 +32,20 @@
     <button class="minimap" data-action="map" aria-label="경로 지도 확대"><span class="map-heading"><span><i data-icon="map"></i> 미니맵</span><i data-icon="expand"></i></span><canvas id="map" width="528" height="246"></canvas></button>
     <div id="place-marker" class="place-marker"><i data-icon="store"></i><span id="marker-text">픽업</span></div>
     <div id="player" class="player"><span class="player-arrow"></span><div class="player-shadow"></div><canvas id="hero" width="90" height="74" aria-label="배달 라이더"></canvas></div>
-    <button class="scene-mission" data-action="missions"><span class="mission-symbol"><i data-icon="flag"></i></span><span><small>오늘의 미션</small><strong id="quick-mission">빠른 배달 3회</strong></span><b id="quick-count">0/3</b></button>
+    <button class="scene-mission" id="scene-mission" data-action="missions"><span class="mission-symbol"><i data-icon="flag"></i></span><span><small>오늘의 미션</small><strong id="quick-mission">빠른 배달 3회</strong></span><b id="quick-count">0/3</b></button>
     <span class="scene-note" id="scene-note" role="status"></span>
     <div class="wipe" id="wipe" aria-hidden="true"></div>
   </section>
   <section class="console" aria-label="배달 조작">
     <article class="panel order-panel" id="order-panel" aria-live="polite"></article>
     <article class="panel condition"><div class="panel-heading"><span><i data-icon="pulse"></i>라이더 상태</span><b id="ride-type" class="small-tag">도보</b></div>
+      <div class="fever-box"><div class="fever-head"><span id="fever-label">부스트 피버</span><b id="combo-badge" class="combo-badge" hidden>0 COMBO</b></div><div class="fever-gauge" aria-hidden="true"><div id="fever-fill"></div></div></div>
       <div class="speed-label"><span>현재 속도</span><strong><b id="speed">0.0</b> <small>km/h</small></strong></div>
     </article>
-    <button class="boost-panel" id="boost" data-action="boost" aria-disabled="true"><span class="bolt"><i data-icon="bolt"></i></span><strong>탭 부스트</strong><small id="boost-hint"><kbd>SPACE</kbd> 또는 탭</small></button>
+    <button class="boost-panel" id="boost" data-action="boost" aria-disabled="true"><span class="bolt"><i data-icon="bolt"></i></span><strong id="boost-title">탭 부스트</strong><small id="boost-hint"><kbd>SPACE</kbd> 또는 탭</small></button>
   </section>
   <nav class="dock" aria-label="게임 메뉴">
-    <div class="nav-items"><button class="active" data-action="home"><i data-icon="radio"></i>배달</button><button data-action="garage"><i data-icon="garage"></i>차고</button><button data-action="missions"><i data-icon="flag"></i>미션<span id="claim-dot" hidden></span></button><button data-action="achievements"><i data-icon="star"></i>업적<span id="achievement-dot" hidden></span></button><button data-action="history"><i data-icon="history"></i>배달 기록</button></div>
+    <div class="nav-items"><button class="active" data-action="home"><i data-icon="radio"></i><span>배달</span></button><button data-action="garage"><i data-icon="garage"></i><span>차고</span></button><button data-action="missions"><i data-icon="flag"></i><span>미션</span><span id="claim-dot" hidden></span></button><button data-action="achievements"><i data-icon="star"></i><span>업적</span><span id="achievement-dot" hidden></span></button><button data-action="history"><i data-icon="history"></i><span>기록</span><span id="codex-dot" hidden></span></button></div>
     <div class="utilities"><button data-action="mute" id="mute" title="전체 소리" aria-label="전체 소리"><i data-icon="volume"></i></button><button data-action="fullscreen" title="전체 화면" aria-label="전체 화면"><i data-icon="fullscreen"></i></button></div>
   </nav>
 </main>

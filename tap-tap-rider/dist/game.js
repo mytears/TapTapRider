@@ -3,7 +3,8 @@
   const G = window.RiderGame, V = window.GameVisuals, A = window.RiderArt, S = window.RiderSound;
   const H = window.RiderAchievements, Ads = window.RiderAds;
   const $ = id => document.getElementById(id), I = V.icon;
-  const s = G.load(), dialog = $("dialog"), world = $("world"), panel = $("order-panel"), hero = $("hero");
+  let s = G.load();
+  const dialog = $("dialog"), world = $("world"), panel = $("order-panel"), hero = $("hero");
   const strip = window.RiderStreet.createStrip($("street-strip"));
   const currentPlace = () => G.placeFor(
     s.phase === "result" ? (s.order.regionName || s.regionName) : s.regionName,
@@ -22,19 +23,26 @@
     climb: ["hall", "계단 오르는 중", "APT · STAIRWAY"], door: ["hall", "배달 층 복도", "APT · HALLWAY"], handoff: ["hall", "음식 전달", "APT · DOOR"],
     claim: ["hall", "고객센터 연결", "CALL · SUPPORT"], result: ["hall", "배달 완료", "DELIVERY · COMPLETE"]
   };
-  let modal = "", garageTab = "rides", choice = s.gender || "male", choiceContext = "", noteTimer = 0, lastScene = "", lastFrame = 0, tick = 0, displayTick = 0, saveTick = 0, anim = 0;
+  let modal = "", garageTab = "rides", historyTab = "log", choice = s.gender || "male", choiceContext = "", noteTimer = 0, lastScene = "", lastFrame = 0, tick = 0, displayTick = 0, saveTick = 0, anim = 0;
   let lastOrderId = -1, doorChoices = [], terrain = { w: 1, h: 1, riderWidth: 1 }, modalMessage = "";
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const seenAchievements = new Set(Object.keys(s.achievements));
-  let achievementFilter = "all", adBusy = false;
+  let achievementFilter = "all", adBusy = false, resetConfirm = false;
+
   function note(msg) { $("scene-note").textContent = msg; $("scene-note").classList.add("on"); clearTimeout(noteTimer); noteTimer = setTimeout(() => $("scene-note").classList.remove("on"), 2000); }
   function persist() {
     H.update(s);
     const newlyUnlocked = H.definitions.filter(a => s.achievements[a.id] && !seenAchievements.has(a.id));
     newlyUnlocked.forEach(a => seenAchievements.add(a.id));
-    if (newlyUnlocked.length) note("업적 달성! " + newlyUnlocked[0].title + (newlyUnlocked.length > 1 ? " 외 " + (newlyUnlocked.length - 1) + "개" : ""));
+    if (newlyUnlocked.length) {
+      S.effect("achievement");
+      S.haptic("achievement");
+      note("업적 달성! " + newlyUnlocked[0].title + (newlyUnlocked.length > 1 ? " 외 " + (newlyUnlocked.length - 1) + "개" : ""));
+    }
     G.save(s);
     $("achievement-dot").hidden = H.available(s) === 0;
+    $("claim-dot").hidden = G.missionsAvailable(s) === 0;
+    $("codex-dot").hidden = G.codexAvailable(s) === 0;
   }
   function snapshot() {
     terrain = { w: world.clientWidth, h: world.clientHeight, riderWidth: hero.clientWidth };
@@ -53,10 +61,16 @@
     const samples = ["버거", "피자", "치킨", "스시", "라멘", "카페"];
     return samples.map(suf => "<span>" + esc(base + suf) + "</span>").join("");
   }
+  function formatMissionProgress(m) {
+    if (m.metric === "distance") return (m.progress / 10).toFixed(1) + "/" + (m.target / 10).toFixed(1) + "km";
+    return m.progress + "/" + m.target;
+  }
   function renderOrder() {
     const p = s.phase, o = s.order;
     const wrongFoodInfo = G.foodById(o.wrongFood && o.wrongFood !== o.food ? o.wrongFood : (G.foods.find(f => f[0] !== o.food)?.[0] || "pizza"));
-    const fareTag = o.premium ? '<em class="fare-tag premium-tag">특별 콜 · 운임 ' + (o.fare / o.regularFare || G.premiumMultiplier) + '배</em>' : p === "offer" && (o.rain || o.peak) ? '<em class="fare-tag">' + (o.rain ? "우천 할증" : "피크 할증") + "</em>" : "";
+    const regular = G.regularTier(s, o.food);
+    const regularTag = regular.level > 0 && p !== "dispatch" ? '<em class="fare-tag regular-tag">' + regular.label + "</em>" : "";
+    const fareTag = (o.premium ? '<em class="fare-tag premium-tag">특별 콜 · 운임 ' + (o.fare / o.regularFare || G.premiumMultiplier) + "배</em>" : p === "offer" && (o.rain || o.peak) ? '<em class="fare-tag">' + (o.rain ? "우천 할증" : "피크 할증") + "</em>" : "") + regularTag;
     const head = (label, icon = "radio") => '<div class="panel-heading"><span>' + I(icon) + label + fareTag + "</span><small>" + (G.traveling(s) ? '<span id="goal-timer"></span>' : "CALL #" + String(o.id).padStart(3, "0")) + "</small></div>";
     const food = '<div class="item-art"><canvas id="food" aria-label="' + esc(o.name) + '"></canvas></div>';
     const detail = (title, desc) => '<div class="offer-detail">' + food + '<div class="offer-text"><h2>' + title + "</h2><p>" + desc + "</p></div></div>";
@@ -70,7 +84,7 @@
       html = head("신규 배달 콜") + detail(esc(o.name), esc(o.shop) + I("arrow") + esc(o.home)) +
         (o.adUnlocked ? '<p class="premium-description">광고 보상 획득 · 콜을 수락하세요.</p>' : "") +
         actions(locked ? '<span class="service-text">광고 보너스 선택 가능</span>' : pay(), refresh + (locked ? "" : button("accept", I("check") + "콜 수락"))) +
-        (locked ? '<div class="premium-choices">' + button("acceptRegular", "광고 없이 수락 <b>" + won(o.regularFare) + "</b>", "sub-btn") + button("premiumAd", "광고 보고 수락 <b>" + won(o.fare) + "</b>", "main-btn premium-btn") + '</div>' : "");
+        (locked ? '<div class="premium-choices">' + button("acceptRegular", "광고 없이 수락 <b>" + won(o.regularFare) + "</b>", "sub-btn") + button("premiumAd", "광고 보고 수락 <b>" + won(o.fare) + "</b>", "main-btn premium-btn") + "</div>" : "");
     }
     else if (p === "dispatch") html = step("배차 대기", "다음 콜 찾는 중…", G.calendar(s).peak ? "콜이 많은 피크 시간이에요." : esc(currentPlace().name) + " 근처 가게에서 새 콜을 찾고 있어요.", "", "", "radio");
     else if (G.traveling(s)) {
@@ -93,7 +107,10 @@
     } else if (p === "handoff") html = step("문 앞 전달", esc(o.name), esc(o.home) + " " + (o.chosenFlat || o.flat) + "호 문 앞에 도착했어요.", "deliver", "음식 전달하기", "box");
     else if (p === "claim") html = head("고객센터 전화", "phone") + detail("배달 확인 요청", o.mixed ? "고객이 다른 음식을 받았어요." : o.wrong ? "고객이 음식을 찾을 수 없어요." : "고객이 전달 위치 확인을 요청했어요.") +
       actions("", button("compensate", "감액 정산", "sub-btn") + button("fix", o.mixed ? "가게 재방문" : "배달지 확인"));
-    else if (p === "result") html = head("배달 완료", "check") + detail(o.fast ? "빠른 배달 성공!" : "배달 정산", esc(o.name) + " · 평점 " + o.score.toFixed(1) + " ★ · " + Math.ceil(o.age) + "초") + actions(pay(o.paid), button("next", "다음 콜 받기"));
+    else if (p === "result") {
+      const bonusNote = (o.combo >= 2 ? " · " + o.combo + "콤보" : "") + (o.bonusRate > 0 ? " · 보너스 +" + o.bonusRate + "%" : "");
+      html = head("배달 완료", "check") + detail(o.fast ? (o.combo >= 2 ? o.combo + "연속 빠른 배달!" : "빠른 배달 성공!") : "배달 정산", esc(o.name) + " · 평점 " + o.score.toFixed(1) + " ★ · " + Math.ceil(o.age) + "초" + bonusNote) + actions(pay(o.paid), button("next", "다음 콜 받기"));
+    }
     panel.innerHTML = html;
     if ($("food")) A.drawFood($("food"), p === "mismatch" ? wrongFoodInfo[0] : o.food);
   }
@@ -135,23 +152,56 @@
     updateShopWallSign(asset, o);
     if (animate && lastScene !== p) { const w = $("wipe"); w.classList.remove("go"); void w.offsetWidth; w.classList.add("go"); }
     if (animate && lastScene !== p) {
-      const sound = ({ result: "complete", claim: "phone", loaded: "pickup", park: "arrive", shopArrive: "arrive", offer: "accept" })[p];
+      const sound = p === "result" && o.combo >= 2 ? "combo" : ({ result: "complete", claim: "phone", loaded: "pickup", park: "arrive", shopArrive: "arrive", offer: "accept" })[p];
       if (sound) S.effect(sound);
-      const msg = ({ shopArrive: o.shop + "에 도착했어요!", toHome: "배달 출발!", park: "목적지 도착!", result: "배달 완료  +" + won(o.paid), claim: "고객센터에서 전화가 왔어요" })[p];
+      const vib = ({ result: "complete", claim: "phone", loaded: "pickup" })[p];
+      if (vib) S.haptic(vib);
+      const msg = ({
+        shopArrive: o.shop + "에 도착했어요!",
+        toHome: "배달 출발!",
+        park: "목적지 도착!",
+        result: (o.combo >= 2 ? o.combo + "연속 콤보! " : "배달 완료 ") + "+" + won(o.paid),
+        claim: "고객센터에서 전화가 왔어요"
+      })[p];
       if (msg) note(msg);
     }
     lastScene = p; renderOrder(); status(); paint(anim); persist();
   }
   function status() {
-    const time = G.calendar(s), o = s.order, p = s.phase, travel = G.traveling(s);
+    G.ensureDailyMissions(s);
+    const time = G.calendar(s), o = s.order, p = s.phase, travel = G.traveling(s), tier = G.boostTier(s);
     $("day").textContent = "DAY " + String(time.day).padStart(2, "0"); $("clock").textContent = time.week + " " + time.clock;
     const weather = s.rain ? "rain" : time.night ? "moon" : "sun";
     if ($("weather").dataset.kind !== weather) { $("weather").dataset.kind = weather; $("weather").innerHTML = I(weather) + (s.rain ? "비" : time.night ? "밤" : "맑음"); }
     world.classList.toggle("rain", s.rain && scenes[p][0] === "street"); world.classList.toggle("night", time.night && scenes[p][0] === "street");
     $("wallet").textContent = won(s.money); $("rating").textContent = G.rating(s).toFixed(1); $("ride-type").textContent = G.vehicle(s).name;
     $("speed").textContent = G.speed(s).toFixed(1);
-    $("boost").classList.toggle("ready", travel); $("boost").setAttribute("aria-disabled", String(!travel));
-    $("quick-count").textContent = s.quick + "/3"; $("claim-dot").hidden = s.quick < 3 || s.claimed;
+
+    // Fever gauge & combo badge
+    const feverPct = Math.round(s.fever || 0);
+    $("fever-fill").style.width = feverPct + "%";
+    $("fever-fill").dataset.tier = String(tier);
+    $("fever-label").textContent = tier === 3 ? "피버 MAX ×2.5" : tier === 2 ? "터보 부스트 ×2.25" : tier === 1 ? "부스트 ×2.05" : "부스트 피버";
+    const comboEl = $("combo-badge");
+    comboEl.hidden = (s.combo || 0) < 2;
+    if (!comboEl.hidden) comboEl.textContent = s.combo + " COMBO";
+
+    const boostBtn = $("boost");
+    boostBtn.classList.toggle("ready", travel);
+    boostBtn.dataset.tier = String(tier);
+    boostBtn.setAttribute("aria-disabled", String(!travel));
+    $("boost-title").textContent = tier === 3 ? "피버 MAX!" : tier === 2 ? "터보 탭!" : "탭 부스트";
+
+    // HUD Quick Mission widget (highlights claimable mission first, else active mission)
+    const missions = s.dailyMissions;
+    const claimable = missions.find(m => m.progress >= m.target && !m.claimed);
+    const active = claimable || missions.find(m => !m.claimed) || missions[0];
+    $("quick-mission").textContent = claimable ? claimable.title + " 보상!" : active.title;
+    $("quick-count").textContent = claimable ? "수령" : formatMissionProgress(active);
+    $("scene-mission").classList.toggle("claimable", !!claimable);
+    $("claim-dot").hidden = G.missionsAvailable(s) === 0;
+    $("codex-dot").hidden = G.codexAvailable(s) === 0;
+
     if ($("route-dist")) { $("route-dist").textContent = distance((1 - s.progress) * (p === "toShop" ? o.pick : o.dist - o.pick)) + " 남음"; $("route-fill").style.width = s.progress * 100 + "%"; $("route-pct").textContent = Math.floor(s.progress * 100) + "%"; }
     if ($("goal-timer")) $("goal-timer").textContent = "목표 " + Math.ceil(o.age) + " / " + o.fastLimit + "초";
     if ($("wait-time")) $("wait-time").textContent = Math.max(0, Math.ceil(s.wait - s.phaseTime)) + "초";
@@ -161,6 +211,7 @@
   }
   function paint(t) {
     const p = s.phase, o = s.order, moving = G.traveling(s), scene = scenes[p][0], outside = scene === "street";
+    const tier = G.boostTier(s);
     const { w: screenW, h: screenH } = terrain, imgW = Math.max(screenW, screenH * 3);
     const route = outside ? window.RiderStreet.project(currentPlace(), o, p, s.progress, terrain) : null;
     if (route) strip.position(route);
@@ -169,6 +220,7 @@
     $("player").style.left = route ? route.feetX + "px" : interiorX + "%";
     world.classList.toggle("player-left", route ? route.feetX < screenW * 0.5 : interiorX < 50);
     $("player").classList.toggle("dash", moving && s.boostTime > 0);
+    $("player").dataset.tier = String(tier);
     $("player").style.bottom = p === "climb" ? (5.3 + 5 * Math.min(1, s.phaseTime / s.wait)) + "%" : "5.3%";
     const riding = moving || ["offer", "dispatch", "park", "parking", "shopArrive"].includes(p);
     $("player").dataset.vehicle = riding ? s.vehicle : "walk";
@@ -182,6 +234,20 @@
     if (reduce || !outside) return;
     if (s.rain) { cx.strokeStyle = "#d5eafa99"; cx.lineWidth = 1; cx.beginPath(); for (let i = 0; i < 66; i++) { const x = (i * 137.3 + w * 2 - t * 0.048 % w) % w, y = (i * 49.7 + t * 0.21) % h; cx.moveTo(x, y); cx.lineTo(x - 3, y + 7); } cx.stroke(); }
     else { for (let i = 0; i < 12; i++) { const x = (i * 79.8 + t * 0.006) % w, y = h * (0.15 + (i % 6) * 0.115) + Math.sin(t * 0.0007 + i) * 4; cx.fillStyle = i % 2 ? "#ffdc9777" : "#ffe4a460"; cx.beginPath(); cx.ellipse(x, y, 1.3, 0.75, Math.sin(t * 0.0008 + i), 0, Math.PI * 2); cx.fill(); } }
+    // Turbo / Fever speed streaks & golden sparkles while boosting!
+    if (tier >= 2) {
+      const lines = tier === 3 ? 16 : 9;
+      cx.strokeStyle = tier === 3 ? "rgba(255,232,148,0.58)" : "rgba(255,244,205,0.36)";
+      cx.lineWidth = tier === 3 ? 1.5 : 1.1;
+      cx.beginPath();
+      for (let i = 0; i < lines; i++) {
+        const sx = ((w - ((t * (tier === 3 ? 0.55 : 0.36) + i * 97) % (w + 60))) + w + 60) % (w + 60) - 30;
+        const sy = h * (0.28 + (i % 7) * 0.10);
+        const len = tier === 3 ? 28 + (i % 3) * 14 : 18 + (i % 3) * 8;
+        cx.moveTo(sx, sy); cx.lineTo(sx - len, sy);
+      }
+      cx.stroke();
+    }
   }
   function frame(time) {
     const dt = Math.min(0.12, Math.max(0, (time - lastFrame) / 1000)); lastFrame = time;
@@ -194,11 +260,12 @@
     }
     requestAnimationFrame(frame);
   }
-  function closeModal() { Ads.cancel(); if (dialog.open) dialog.close(); modal = ""; modalMessage = ""; markNav(); }
+  function closeModal() { Ads.cancel(); if (dialog.open) dialog.close(); modal = ""; modalMessage = ""; resetConfirm = false; markNav(); }
   function markNav() { document.querySelectorAll(".nav-items button").forEach(b => b.classList.toggle("active", b.dataset.action === (["garage", "missions", "achievements", "history"].includes(modal) ? modal : "home"))); }
-  function openModal(name) { modal = name; modalMessage = ""; drawModal(); if (!dialog.open) dialog.showModal(); dialog.scrollTop = 0; markNav(); }
+  function openModal(name) { modal = name; modalMessage = ""; resetConfirm = false; drawModal(); if (!dialog.open) dialog.showModal(); dialog.scrollTop = 0; markNav(); }
   function picker(gender, label) { return button("choose", '<canvas data-character="' + gender + '"></canvas><b>' + label + "</b>", "rider-choice" + (choice === gender ? " chosen" : ""), gender); }
   function drawModal() {
+    G.ensureDailyMissions(s);
     const o = s.order, body = $("modal-content"), place = currentPlace();
     let title = "", kicker = "", html = "";
     if (modal === "rider") {
@@ -216,19 +283,33 @@
           return '<button type="button" class="district-card" data-action="theme" data-value="' + t.id + '" aria-label="' + esc(t.name) + '" aria-pressed="' + selected + '"><img src="assets/' + t.image + '.webp?v=4" alt=""><span>' + esc(t.short) + "</span>" + (selected ? I("check") : "") + "</button>";
         }).join("") + "</div></fieldset>" +
         '<div class="setting-row"><strong>라이더</strong>' + button("editRider", (s.gender === "female" ? "여성" : s.gender === "male" ? "남성" : "라이더") + " 선택", "sub-btn") + "</div>";
-      for (const [key, label] of [["music", "배경음악"], ["sfx", "효과음"]]) html += '<div class="setting-row"><strong>' + label + "</strong>" + button("toggle", s[key] ? "켜짐" : "꺼짐", "toggle" + (s[key] ? " chosen" : ""), key) + "</div>";
-      html += '<div class="setting-row"><strong>전체 화면</strong>' + button("fullscreen", document.fullscreenElement ? "해제" : "전환", "sub-btn") + '</div><p style="margin-top:12px">이동 중 화면을 탭하거나 Space를 누르면 가속합니다.</p>';
+      for (const [key, label] of [["music", "배경음악"], ["sfx", "효과음"], ["haptics", "진동 효과"]]) {
+        html += '<div class="setting-row"><strong>' + label + "</strong>" + button("toggle", s[key] ? "켜짐" : "꺼짐", "toggle" + (s[key] ? " chosen" : ""), key) + "</div>";
+      }
+      html += '<div class="setting-row"><strong>전체 화면</strong>' + button("fullscreen", document.fullscreenElement ? "해제" : "전환", "sub-btn") + "</div>" +
+        '<div class="setting-row"><div><strong>저장 기록 초기화</strong><small>보유 탈것·장비·업적·도감을 처음부터 다시 시작해요.</small></div>' + button("resetSave", resetConfirm ? "정말 초기화" : "초기화", resetConfirm ? "sub-btn danger-btn" : "sub-btn") + "</div>" +
+        '<p style="margin-top:12px">이동 중 화면을 탭하거나 Space를 연타하면 터보·피버로 더 빠르게 달릴 수 있어요.</p>';
     } else if (modal === "garage") {
       title = "라이더 차고"; kicker = "GARAGE"; html = '<div class="modal-money">' + I("coin") + " " + won(s.money) + '</div><div class="modal-tabs">' + button("garageTab", "배달 수단", garageTab === "rides" ? "chosen" : "", "rides") + button("garageTab", "강화 장비", garageTab === "gear" ? "chosen" : "", "gear") + "</div>";
       if (garageTab === "rides") {
         html += '<div class="garage-grid">' + G.vehicles.map(v => { const owned = s.owned.includes(v.id), active = v.id === s.vehicle; return button("vehicle", '<canvas data-vehicle="' + v.id + '"></canvas><b>' + v.name + '</b><small class="' + (owned ? "owned" : "") + '">' + (active ? "장착 중" : owned ? "장착하기" : won(v.cost)) + '</small><small class="owned">' + v.speed + " km/h</small>", "vehicle" + (active ? " chosen" : ""), v.id); }).join("") + "</div>";
-      } else for (const [id, name, desc] of [["speedGear", "경량 배달 가방", "단계마다 기본 속도 +12%"]]) {
-        html += '<div class="list-row"><div><strong>' + name + " · Lv." + s[id] + "</strong><small>" + desc + "</small></div>" + button("gearBuy", s[id] >= 5 ? "최고 단계" : won(G.gearCost(s[id])) + " 강화", "sub-btn", id, s[id] >= 5) + "</div>";
+      } else {
+        for (const g of G.gears) {
+          const lv = s[g.id] || 0;
+          html += '<div class="list-row"><div><strong>' + esc(g.name) + " · Lv." + lv + "</strong><small>" + esc(g.desc) + "</small></div>" + button("gearBuy", lv >= 5 ? "최고 단계" : won(G.gearCost(lv)) + " 강화", "sub-btn", g.id, lv >= 5) + "</div>";
+        }
       }
       html += '<div class="modal-note" role="status">' + modalMessage + "</div>";
     } else if (modal === "missions") {
-      title = "오늘의 미션"; kicker = "DAILY MISSION";
-      html = "<h3>" + I("flag") + ' 빠른 배달 3회</h3><p style="margin:8px 0">콜별 목표 시간 안에 정확한 주소로 음식을 3번 전달하세요.</p><div class="list-row"><strong>달성 횟수</strong><b class="modal-money">' + s.quick + ' / 3</b></div><div class="list-row"><strong>보너스 운임</strong><b class="modal-money">' + won(2200) + "</b></div>" + button("claimMission", s.claimed ? "보상 수령 완료" : s.quick === 3 ? "보상 받기" : "미션 진행 중", "main-btn wide", "", s.claimed || s.quick < 3);
+      title = "오늘의 미션"; kicker = "DAILY MISSIONS · DAY " + String(s.dailyDay).padStart(2, "0");
+      const done = s.dailyMissions.filter(m => m.progress >= m.target).length;
+      html = '<div class="achievement-summary"><strong>' + done + '<small> / 3 달성</small></strong><span>매일 새 미션 · 탈것 단계에 맞춰 보상 증가</span></div><div class="achievement-list">';
+      for (const m of s.dailyMissions) {
+        const complete = m.progress >= m.target;
+        html += '<article class="achievement-card' + (complete ? " complete" : "") + '"><div class="achievement-icon">' + I(complete ? "check" : "flag") + '</div><div class="achievement-detail"><strong>' + esc(m.title) + "</strong><p>" + esc(m.desc) + '</p><progress max="' + m.target + '" value="' + m.progress + '" aria-label="' + esc(m.title) + ' 진행도"></progress><small>' + formatMissionProgress(m) + '</small></div><div class="achievement-reward"><b>' + won(m.reward) + "</b>" +
+          (m.claimed ? "<span>수령 완료</span>" : button("claimMission", complete ? "보상 받기" : "진행 중", complete ? "main-btn mission-claim-btn" : "sub-btn", m.id, !complete)) + "</div></article>";
+      }
+      html += "</div>";
     } else if (modal === "achievements") {
       title = "라이더 업적"; kicker = "ACHIEVEMENTS";
       const done = H.definitions.filter(a => s.achievements[a.id]).length;
@@ -241,25 +322,51 @@
         if (achievementFilter === "active" && completion) continue;
         displayed++;
         const current = completion ? item.target : Math.min(item.target, H.progress(s, item));
-        html += '<article class="achievement-card' + (completion ? " complete" : "") + '"><div class="achievement-icon">' + I(completion ? "check" : "star") + '</div><div class="achievement-detail"><strong>' + esc(item.title) + '</strong><p>' + esc(item.description) + '</p><progress max="' + item.target + '" value="' + current + '" aria-label="' + esc(item.title) + ' 진행도"></progress><small>' + current.toLocaleString("ko-KR") + ' / ' + item.target.toLocaleString("ko-KR") + '</small></div><div class="achievement-reward"><b>' + won(item.reward) + '</b>' +
-          (completion?.claimed ? '<span>수령 완료</span>' : button("claimAchievement", completion ? "보상 받기" : "진행 중", "sub-btn", item.id, !completion)) + '</div></article>';
+        html += '<article class="achievement-card' + (completion ? " complete" : "") + '"><div class="achievement-icon">' + I(completion ? "check" : "star") + '</div><div class="achievement-detail"><strong>' + esc(item.title) + "</strong><p>" + esc(item.description) + '</p><progress max="' + item.target + '" value="' + current + '" aria-label="' + esc(item.title) + ' 진행도"></progress><small>' + current.toLocaleString("ko-KR") + " / " + item.target.toLocaleString("ko-KR") + '</small></div><div class="achievement-reward"><b>' + won(item.reward) + "</b>" +
+          (completion?.claimed ? "<span>수령 완료</span>" : button("claimAchievement", completion ? "보상 받기" : "진행 중", "sub-btn", item.id, !completion)) + "</div></article>";
       }
-      html += (displayed ? "" : '<p class="empty">' + (achievementFilter === "ready" ? "받을 보상을 모두 수령했어요." : "모든 업적을 달성했어요!") + '</p>') + '</div>';
+      html += (displayed ? "" : '<p class="empty">' + (achievementFilter === "ready" ? "받을 보상을 모두 수령했어요." : "모든 업적을 달성했어요!") + "</p>") + "</div>";
     } else if (modal === "premiumAd") {
       title = "특별 콜 해금"; kicker = "REWARDED CALL";
-      html = '<div class="premium-offer"><span>운임 ' + (o.fare / o.regularFare || G.premiumMultiplier) + '배</span><strong>' + won(o.fare) + '</strong><p>' + esc(o.shop) + ' · ' + esc(o.name) + '</p></div><p>광고 시청을 완료하면 이 특별 콜을 수락할 수 있어요. 중간에 닫으면 해금되지 않아요.</p>' +
+      html = '<div class="premium-offer"><span>운임 ' + (o.fare / o.regularFare || G.premiumMultiplier) + "배</span><strong>" + won(o.fare) + "</strong><p>" + esc(o.shop) + " · " + esc(o.name) + "</p></div><p>광고 시청을 완료하면 이 특별 콜을 수락할 수 있어요. 중간에 닫으면 해금되지 않아요.</p>" +
         (!Ads.android ? '<p class="ad-test-notice">웹 미리보기에서는 5초 보상 광고 테스트를 진행합니다.</p>' : '<p class="ad-test-notice">현재 테스트 버전에는 Google 테스트 광고가 표시됩니다.</p>') +
         '<p id="ad-status" role="status" class="ad-status"></p>' + button("watchAd", Ads.android ? "광고 시청 시작" : "테스트 시청 시작", "main-btn wide");
     } else if (modal === "history") {
-      title = "배달 기록"; kicker = "DELIVERY LOG"; html = '<div class="summary-grid"><div><small>완료한 배달</small><b>' + s.count + "건</b></div><div><small>누적 운임</small><b>" + won(s.total) + "</b></div><div><small>평균 평점</small><b>" + G.rating(s).toFixed(1) + "</b></div></div>";
-      if (!s.history.length) html += '<p class="empty">첫 음식을 전달하면 여기에 정산 기록이 쌓여요.</p>';
-      else for (const r of s.history) html += '<div class="list-row"><div><strong>' + esc(r.name) + "</strong><small>DAY " + r.day + " · " + esc(r.shop || r.regionName || s.regionName) + " · " + esc(r.home) + " · " + r.time + "초 · ★ " + r.score.toFixed(1) + '</small></div><b class="modal-money">' + won(r.pay) + "</b></div>";
+      title = historyTab === "codex" ? "동네 맛집 도감" : "배달 기록";
+      kicker = historyTab === "codex" ? "FOOD CODEX" : "DELIVERY LOG";
+      const codexReady = G.codexAvailable(s);
+      html = '<div class="modal-tabs">' + button("historyTab", "배달 내역", historyTab === "log" ? "chosen" : "", "log") + button("historyTab", "맛집 도감 (" + s.stats.foods.length + "/20)" + (codexReady ? " · 보상!" : ""), historyTab === "codex" ? "chosen" : "", "codex") + "</div>";
+      if (historyTab === "log") {
+        html += '<div class="summary-grid"><div><small>완료한 배달</small><b>' + s.count + "건</b></div><div><small>누적 운임</small><b>" + won(s.total) + "</b></div><div><small>평균 평점</small><b>" + G.rating(s).toFixed(1) + "</b></div><div><small>최고 콤보</small><b>" + (s.stats.bestCombo || 0) + "연속</b></div></div>";
+        if (!s.history.length) html += '<p class="empty">첫 음식을 전달하면 여기에 정산 기록이 쌓여요.</p>';
+        else for (const r of s.history) html += '<div class="list-row"><div><strong>' + esc(r.name) + "</strong><small>DAY " + r.day + " · " + esc(r.shop || r.regionName || s.regionName) + " · " + esc(r.home) + " · " + r.time + "초 · ★ " + r.score.toFixed(1) + (r.combo >= 2 ? " · " + r.combo + "콤보" : "") + '</small></div><b class="modal-money">' + won(r.pay) + "</b></div>";
+      } else {
+        const discovered = s.stats.foods.length;
+        const regularCount = G.foods.filter(f => G.regularTier(s, f[0]).level > 0).length;
+        html += '<div class="achievement-summary"><strong>' + discovered + '<small> / 20 발견</small></strong><span>단골 매장 ' + regularCount + '곳 · 3회 배달 시 단골 혜택!</span></div>' +
+          '<div class="codex-milestones">' + G.codexMilestones.map(m => {
+            const reached = discovered >= m.target, claimed = s.codexClaimed.includes(m.target);
+            return '<div class="codex-mile' + (claimed ? " claimed" : reached ? " ready" : "") + '"><small>' + m.target + "종 · " + esc(m.label) + "</small><b>" + won(m.reward) + "</b>" +
+              (claimed ? "<span>수령 완료</span>" : button("claimCodex", reached ? "받기" : discovered + "/" + m.target, reached ? "main-btn codex-btn" : "sub-btn codex-btn", m.target, !reached)) + "</div>";
+          }).join("") + '</div><div class="codex-grid">' + G.foods.map(([id, name, suffix]) => {
+            const cnt = s.stats.foodCounts?.[id] || 0;
+            const found = cnt > 0 || s.stats.foods.includes(id);
+            const reg = G.regularTier(s, id);
+            return '<article class="codex-card' + (found ? " found" : " locked") + '">' +
+              (reg.level > 0 ? '<span class="codex-badge">' + reg.label + "</span>" : "") +
+              '<canvas data-codex-food="' + id + '"></canvas>' +
+              "<b>" + (found ? esc(place.name + suffix) : "???") + "</b>" +
+              "<small>" + (found ? esc(name) : "미발견 메뉴") + "</small>" +
+              "<em>" + (found ? Math.max(1, cnt) + "회 배달" : "배달 시 해금") + "</em></article>";
+          }).join("") + "</div>";
+      }
     } else if (modal === "map") {
       title = "배달 경로"; kicker = esc(place.name) + " DELIVERY MAP"; html = '<canvas class="large-map" id="large-map" width="1056" height="492"></canvas><div class="map-legend"><span>현재 위치</span><span class="pickup">픽업</span><span class="destination">배달지</span></div><div class="list-row"><div><strong>' + esc(o.shop) + " → " + esc(o.home) + "</strong><small>" + esc(o.name) + " · " + o.flat + "호 · " + o.dist.toFixed(1) + ' km</small></div><b class="modal-money">' + won(o.fare) + "</b></div><p>목표 시간 " + o.fastLimit + "초 · 평점 " + o.rate.toFixed(1) + (o.peak ? " · 피크 할증 10%" : "") + (o.rain ? " · 우천 할증 25%" : "") + "</p>";
     }
     $("modal-title").textContent = title; $("modal-kicker").textContent = kicker; body.innerHTML = html;
     body.querySelectorAll("[data-character]").forEach(c => A.drawRider(c, { gender: c.dataset.character, vehicle: "walk", time: 0, moving: false, boost: false }));
     body.querySelectorAll("[data-vehicle]").forEach(c => A.drawTransport(c, c.dataset.vehicle));
+    body.querySelectorAll("[data-codex-food]").forEach(c => A.drawFood(c, c.dataset.codexFood));
     if ($("large-map")) V.drawMap($("large-map"), visualMapProgress());
     if ($("region-form")) {
       const input = $("region-input"), preview = $("region-preview");
@@ -290,7 +397,9 @@
     if (modal) return;
     const result = G.tap(s);
     if (!result) { if (!G.traveling(s)) note("가게나 배달지로 이동할 때 탭하세요."); return; }
-    S.effect("boost");
+    const tier = G.boostTier(s);
+    S.effect("boost", tier);
+    S.haptic(tier >= 3 ? "fever" : tier === 2 ? "turbo" : "tap");
     $("boost").classList.add("hit"); setTimeout(() => $("boost").classList.remove("hit"), 85); status(); paint(anim);
   }
   async function watchAd() {
@@ -303,6 +412,7 @@
     adBusy = false;
     if (result.earned && G.unlockPremium(s, orderId)) {
       persist(); closeModal(); renderOrder(); status();
+      S.haptic("complete");
       note("특별 콜이 해금됐어요! 콜을 수락해 주세요.");
     } else if (modal === "premiumAd") {
       $("ad-status").textContent = result.message || "시청이 완료되지 않았어요. 다시 시도할 수 있어요.";
@@ -312,7 +422,7 @@
   function acceptOffer() {
     if (s.order.premium && !s.order.adUnlocked) { openModal("premiumAd"); return; }
     if (!s.gender) { choiceContext = "start"; choice = "male"; openModal("rider"); }
-    else { G.start(s); S.effect("accept"); swapScene(); }
+    else { G.start(s); S.effect("accept"); S.haptic("tap"); swapScene(); }
   }
   function action(id, value) {
     S.unlock(s);
@@ -323,26 +433,41 @@
     else if (id === "premiumAd" && s.phase === "offer" && s.order.premium && !s.order.adUnlocked) openModal("premiumAd");
     else if (id === "watchAd") { watchAd(); return; }
     else if (id === "achievementFilter") { achievementFilter = value; drawModal(); }
-    else if (id === "claimAchievement") { if (H.claim(s, value)) { S.effect("complete"); status(); drawModal(); } }
+    else if (id === "historyTab") { historyTab = value; drawModal(); }
+    else if (id === "claimAchievement") { const r = H.claim(s, value); if (r) { S.effect("complete"); S.haptic("complete"); status(); drawModal(); note("업적 보상 +" + won(r)); } }
+    else if (id === "claimCodex") { const r = G.claimCodex(s, value); if (r) { S.effect("complete"); S.haptic("complete"); status(); drawModal(); note("도감 보상 +" + won(r)); } }
     else if (id === "mute") { s.muted = !s.muted; note(s.muted ? "전체 소리 끔" : "전체 소리 켬"); status(); }
     else if (id === "fullscreen") { fullscreen(); return; }
     else if (id === "presetRegion") { applyRegionName(value); return; }
     else if (id === "theme") {
       if (G.setTheme(s, value)) { swapScene(false); drawModal(); dialog.querySelector('[data-action="theme"][data-value="' + s.themeId + '"]')?.focus(); }
     }
-    else if (id === "toggle") { if (["music", "sfx"].includes(value)) { s[value] = !s[value]; if (s[value]) s.muted = false; } drawModal(); status(); }
-    else if (id === "accept" && s.phase === "offer") {
-      acceptOffer();
-    } else if (id === "acceptRegular" && G.useRegularFare(s, s.order.id)) {
-      acceptOffer();
-    } else if (id === "editRider") { choiceContext = "settings"; choice = s.gender || "male"; openModal("rider"); }
+    else if (id === "toggle") {
+      if (["music", "sfx", "haptics"].includes(value)) {
+        s[value] = !s[value];
+        if ((value === "music" || value === "sfx") && s[value]) s.muted = false;
+        if (value === "haptics" && s.haptics) S.haptic("tap");
+      }
+      drawModal(); status();
+    }
+    else if (id === "resetSave") {
+      if (!resetConfirm) { resetConfirm = true; drawModal(); return; }
+      s = G.reset(true, s);
+      seenAchievements.clear();
+      lastOrderId = -1; lastScene = ""; choice = "male"; resetConfirm = false;
+      closeModal(); swapScene(false); note("저장 기록을 초기화했어요.");
+      return;
+    }
+    else if (id === "accept" && s.phase === "offer") { acceptOffer(); }
+    else if (id === "acceptRegular" && G.useRegularFare(s, s.order.id)) { acceptOffer(); }
+    else if (id === "editRider") { choiceContext = "settings"; choice = s.gender || "male"; openModal("rider"); }
     else if (id === "choose") { choice = value; drawModal(); }
     else if (id === "confirmRider") {
       s.gender = choice; closeModal(); if (choiceContext === "start") { G.start(s); S.effect("accept"); swapScene(); } else { paint(anim); openModal("settings"); }
     } else if (id === "garageTab") { garageTab = value; modalMessage = ""; drawModal(); }
     else if (id === "vehicle") { modalMessage = G.buyVehicle(s, value); drawModal(); status(); paint(anim); }
     else if (id === "gearBuy") { modalMessage = G.buyGear(s, value); drawModal(); status(); }
-    else if (id === "claimMission") { if (G.claimMission(s)) { S.effect("complete"); status(); drawModal(); } }
+    else if (id === "claimMission") { const r = G.claimMission(s, value); if (r) { S.effect("complete"); S.haptic("complete"); status(); drawModal(); note("미션 보상 +" + won(r)); } }
     else { const old = s.phase; G.act(s, id, value); if (s.phase !== old) swapScene(); }
     persist();
   }
@@ -356,15 +481,16 @@
     if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
     if (e.code === "Space" && !modal && G.traveling(s) && !e.ctrlKey && !e.altKey) { e.preventDefault(); if (!e.repeat) { S.unlock(s); boost(); } }
   });
-  dialog.addEventListener("close", () => { if (!dialog.open) { Ads.cancel(); modal = ""; markNav(); } });
-  dialog.addEventListener("cancel", () => { Ads.cancel(); modal = ""; markNav(); });
+  dialog.addEventListener("close", () => { if (!dialog.open) { Ads.cancel(); modal = ""; resetConfirm = false; markNav(); } });
+  dialog.addEventListener("cancel", () => { Ads.cancel(); modal = ""; resetConfirm = false; markNav(); });
   A.ready.then(() => {
     strip.refreshArtwork();
     const emblem = $("shop-wall-sign");
     if (emblem) delete emblem.dataset.food;
     swapScene(false);
-    dialog.querySelectorAll("[data-character]").forEach(c => A.drawRider(c, {gender:c.dataset.character, vehicle:"walk"}));
+    dialog.querySelectorAll("[data-character]").forEach(c => A.drawRider(c, { gender: c.dataset.character, vehicle: "walk" }));
     dialog.querySelectorAll("[data-vehicle]").forEach(c => A.drawTransport(c, c.dataset.vehicle));
+    dialog.querySelectorAll("[data-codex-food]").forEach(c => A.drawFood(c, c.dataset.codexFood));
   });
   document.addEventListener("visibilitychange", () => { if (document.hidden) persist(); lastFrame = performance.now(); }); window.addEventListener("pagehide", persist);
   new ResizeObserver(() => { snapshot(); paint(anim); }).observe(world);

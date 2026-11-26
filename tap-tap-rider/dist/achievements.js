@@ -38,12 +38,25 @@
     const previous = s.stats || {};
     const count = predicate => history.filter(predicate).length;
     const counter = (key, fallback) => Math.max(fallback, Number(previous[key]) || 0);
+    const foods = [...new Set([...(Array.isArray(previous.foods) ? previous.foods : []), ...history.map(r => r.food).filter(Boolean)])];
+    const prevCounts = previous.foodCounts && typeof previous.foodCounts === "object" && !Array.isArray(previous.foodCounts) ? previous.foodCounts : {};
+    const foodCounts = {};
+    for (const [k, v] of Object.entries(prevCounts)) {
+      const n = Math.floor(Number(v) || 0);
+      if (n > 0) foodCounts[k] = n;
+    }
+    const histCounts = {};
+    for (const r of history) if (r.food) histCounts[r.food] = (histCounts[r.food] || 0) + 1;
+    for (const [k, n] of Object.entries(histCounts)) foodCounts[k] = Math.max(foodCounts[k] || 0, n);
+    for (const f of foods) if (!foodCounts[f]) foodCounts[f] = 1;
     s.stats = {
       fast: counter("fast", Math.max(s.quick || 0, count(r => r.fast))),
       perfect: counter("perfect", count(r => r.score === 5)),
       rain: counter("rain", count(r => r.rain)),
       peak: counter("peak", count(r => r.peak)),
-      foods: [...new Set([...(Array.isArray(previous.foods) ? previous.foods : []), ...history.map(r => r.food).filter(Boolean)])]
+      foods,
+      foodCounts,
+      bestCombo: counter("bestCombo", Number(s.combo) || 0)
     };
     s.achievements = s.achievements && typeof s.achievements === "object" && !Array.isArray(s.achievements)
       ? s.achievements : {};
@@ -56,6 +69,8 @@
     if (order.rain) s.stats.rain++;
     if (order.peak) s.stats.peak++;
     if (!s.stats.foods.includes(order.food)) s.stats.foods.push(order.food);
+    s.stats.foodCounts[order.food] = (s.stats.foodCounts[order.food] || 0) + 1;
+    if ((s.combo || 0) > (s.stats.bestCombo || 0)) s.stats.bestCombo = s.combo;
   }
 
   function progress(s, achievement) {
